@@ -57,7 +57,7 @@ An interesting discussion of `std::sort` vs single-nth `std::nth_element` and `s
 additional **semantic clarity** in performing only the required partitioning. The paper shows examples of various
 partitioning problems.
 
-The semantics of the algorithm is that it partitions a range into any number of partitions. The range is arranged so that at the partition points, the elements are such as if the whole range was sorted. The elements are also arranges so that the elements before any partition point are less than or equal to that partition point. That is, the data is arranged into groups of pre-determined sizes based on some ordering, but the order within each partition (between the partition points) is not specified.
+The semantics of the algorithm is that it partitions a range (let's say a vector v) into any number of partitions. The range (v) is arranged so that at the partition points, the elements are such as if the whole range was sorted. The elements are also arranged so that the elements before any partition point are less than or equal to the value at that partition point. That is, the data (v) is arranged into groups of pre-determined sizes based on some specified ordering, but the order within each partition (between the partition points) is not specified.
 
 The examples below are taken from the paper (P0) with some additional comments. Additional examples are marked as such.
 **Current alternatives to *this* proposal are either at least somewhat hard to write correctly and/or less performant**.
