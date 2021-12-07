@@ -53,7 +53,7 @@ Johan Lundberg\\
 \vspace*{-5em}
 
 \begin{tabular}{ll}
-Document \#:& P2375R0 \\
+Document \#:& P2375 D1 \\
 Date: &2021-05-14 \\
 Project: & Programming Language C++ \\
 Audience: & LEWG \\
@@ -67,6 +67,10 @@ The use and analysis of such algorithms is widespread and mature[Alsuwaiyel2001,
 
 \subsection*{Contents}
 \tableofcontents
+
+\subsection*{Revision history vs R0}
+
+Fixed typo. (23021-12-06)
 
 \section{Introduction}
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single \tcode{nth} iterator, allowing arbitrary partial sorting of any sortable range.
@@ -173,7 +177,7 @@ sort(v,pred);
 It partitions into any number of partitions as shown in the previous section. Partitioning a bunch of ponies into several age groups, then sort one group by name.
 
 \begin{codeblock}
-stuct Pony{
+struct Pony{
   double littleness; 
   chrono::duration age;
   string name;

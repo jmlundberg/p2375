@@ -15,7 +15,9 @@ Tracker:
 
 - https://github.com/cplusplus/papers/issues/1045
 
-Contact lundberj@gmail.com, or at https://www.includecpp.org/discord/
+Contact
+
+lundberj@gmail.com , or at https://www.includecpp.org/discord/, or https://www.linkedin.com/in/johanml/
 
 ## Topics and discussion of comments on revision R0:
 
@@ -31,7 +33,8 @@ Not sure, I don't think so. The example implementation does not use .size(). I f
 
 ### Request for motivation. Performance benefits. (2021-11-21)
 
-A basic performance study is done at https://github.com/jmlundberg/nth_element_material
+A basic **performance study** is done at
+https://github.com/jmlundberg/nth_element_material/blob/main/PERFORMANCE.md.
 
 ### How should the `nths` be provided? (2021-11-21)
 
@@ -57,15 +60,16 @@ partitioning problems.
 The semantics of the algorithm is that it partitions a range into any number of partitions. The range is arranged so that at the partition points, the elements are such as if the whole range was sorted. The elements are also arranges so that the elements before any partition point are less than or equal to that partition point. That is, the data is arranged into groups of pre-determined sizes based on some ordering, but the order within each partition (between the partition points) is not specified.
 
 The examples below are taken from the paper (P0) with some additional comments. Additional examples are marked as such.
-Alternatives are either at least somewhat **hard to write correctly** and/or **less performant**.
+**Current alternatives to *this* proposal are either at least somewhat hard to write correctly and/or less performant**.
+Note: [performance study](https://github.com/jmlundberg/nth_element_material/PERFORMANCE.md).
 
 #### Application example 1
 
 Eg: Partitioning a bunch
-of ponies into several age groups, then sort *one* group by name.
+of ponies into several *age* groups, then sort *one* group by *name*.
 
 ```
-stuct Pony{
+struct Pony{
   double littleness;
   chrono::duration age;
   string name;
@@ -121,11 +125,11 @@ Did we get this right?
 sort(v,pred);
 ```
 
-#### Outlier filtering (not mentioned in P0)
+#### Outlier filtering (not mentioned in R0)
 
 With two partitioning points, the lowest a, and highest b elements are excluded from a range in constant time with a single call to the proposed extension.
 
-#### Pagination, visiting sorted subset. (not mention in P0)
+#### Pagination, visiting sorted subset. (not mention in R0)
 
 A small sorted windows into a large data set can be selected as if sorted by partitioning at two points. For example, if `j` items fit on a display page, we can jump to page `k`, that is, into the range from `a=v.begin()+j*k` to `b=v.begin()+j*(k+1)`:
 ```
@@ -134,10 +138,20 @@ processPage(a,b); // May also now sort the small subrange with std::sort(a,b);
 ```
 An option is to pre-partition into all pages, exactly as the *slots* example above.
 
-#### Partitioning with interpolation. Quantiles.
+#### Partitioning with interpolation. Quantiles. Percentiles. Median. (further comments here in addition to R0)
 
 The paper also explains how the proposal can be used to implement calculation of quantiles.
 
+Further comments:
+
 The current standard single-nth `std::nth_element` is actually not enough to calculate even a single quantile point, such as the median. At least not in the way that is often preferred: For example the [median](https://en.wikipedia.org/wiki/Median) of an even number of elements is typically taken  to be the mean of the two central elements. With the range-of-nth `nth_element` version single or multiple quantiles can be calculated efficiently.
 
-It's also a common situation to calculate more than one quantile, such as min, 25%, 50% (median), 75%, max. This requires 5 to 8 partition points depending on the size of the data.
+It's also a common situation to calculate more than one quantile, such as min, 25%, 50% (median), 75%, max. This requires 5 to 8 partition points depending on the size of the data. With *this* proposal this can be done in `O(N)`. Also note wikipedia on [Percentiles](https://en.wikipedia.org/wiki/Percentile), and [Estimating quantiles from a sample](https://en.wikipedia.org/wiki/Quantile#Estimating_quantiles_from_a_sample).
+
+#### Example: Histogram / Data / Image Equalization (not mention in R0)
+
+Found at https://github.com/jmlundberg/nth_element_material/blob/main/plotting/examples/partition_based_image_equalization.md
+
+Orgininal vs image equalization using `range-of-nths`, `m=5`
+
+<img alt="alt_text" width="38%" src="https://github.com/jmlundberg/nth_element_material/blob/main/plotting/examples/forsen.png?raw=true" /> <img alt="alt_text" width="38%" src="https://github.com/jmlundberg/nth_element_material/blob/main/plotting/examples/forsen_partition5.png?raw=true" />
