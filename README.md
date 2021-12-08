@@ -61,7 +61,7 @@ The semantics of the algorithm is that it partitions a range (let's say a vector
 
 The examples below are taken from the paper (P0) with some additional comments. Additional examples are marked as such.
 **Current alternatives to *this* proposal are either at least somewhat hard to write correctly and/or less performant**.
-Note: [performance study](https://github.com/jmlundberg/nth_element_material/PERFORMANCE.md).
+Note: [performance study](https://github.com/jmlundberg/nth_element_material/blob/main/PERFORMANCE.md).
 
 #### Application example 1
 
