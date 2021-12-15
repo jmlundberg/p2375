@@ -22,6 +22,7 @@
     \end{myQuoteEnumerate}%
 }%
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{lineno}
 %\iffalse
 \usepackage{xcolor}
 \usepackage{lineno}
@@ -53,7 +54,7 @@ Johan Lundberg\\
 \vspace*{-5em}
 
 \begin{tabular}{ll}
-Document \#:& P2375 D1 \\
+Document \#:& D2375R1 W.I.P. 2021-12-15\\
 Date: &2021-05-14 \\
 Project: & Programming Language C++ \\
 Audience: & LEWG \\
@@ -70,7 +71,9 @@ The use and analysis of such algorithms is widespread and mature[Alsuwaiyel2001,
 
 \subsection*{Revision history vs R0}
 
-Fixed typo. (23021-12-06)
+Fixed typo. (2021-12-06)\\
+Summarized performance study, with references. (2021-12-15)\\
+
 
 \section{Introduction}
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single \tcode{nth} iterator, allowing arbitrary partial sorting of any sortable range.
@@ -248,8 +251,8 @@ A good overview is found in P2119R0 commenting on the paper P1708R4 \dblquotes{S
 \textbf{5} 
 Complexity: For the overloads with no ExecutionPolicy, linear on average.
 For the overloads with an ExecutionPolicy, O(N) applications of the predicate, and O(N log N) swaps, where N = last - first. 
-\added{For overloads taking a range [nths_first,nths_last) but no ExecutionPolicy the complexity is approximately \mbox{O(N log m)} where m is the number of unique elements in [nths_first,nths_last).
-For overloads taking a range [nths_first,nths_last) and an ExecutionPolicy the complexity is \mbox{O(N log N)}.}
+\added{For overloads taking a range [nths_first,nths_last) but no ExecutionPolicy the complexity is approximately \mbox{O(N log m + M)} where m is the number of unique elements in [nths_first,nths_last) where M = nths_last - nths_first.
+For overloads taking a range [nths_first,nths_last) and an ExecutionPolicy the complexity is \mbox{O(N log N + M)}.}
 
 \subsection{Synopsis -- \tcode{<algorithm> [algorithm.syn]}}
 
@@ -306,6 +309,68 @@ Q: What if \tcode{nths} or [first,last) is empty? A: \tcode{nth_elements} does n
 Q: What if some elements of \tcode{nths} are equal to last. A: As with \tcode{nth_element}, not a problem.
 
 Q: What if some elements of \tcode{nths} are equal to each other A: By specification, not a problem.
+
+\section{Reference implementation and practical Performance}
+
+A reference implementation is found at \cite{p2375src}. A performance study is found at \cite{p2375RefImpl} and summarized here. 
+
+\subsubsection*{Time vs \tcode{std::sort} for equidistant partitioning points}
+
+\begin{center}
+\includegraphics[width=0.6\textwidth]{plotting/images/partition_points_equidistant_speed_for_n_vs_sort.png}
+\end{center}
+
+The above image shows the execution speed of \tcode{nth_element} compared to \tcode{std::sort} for various vector sizes $N$.
+The data to sort here consists of randomly shuffled integers, and the range-of-nths version of \tcode{nth_element} was given different numbers $m$ of evenly spaced partitioning points in the vector. Dotted lines show lines $k_i \cdot log(N)$ fitted to pass though each curve at $N=3e6$.
+
+The image shows that the speed curves approximately follow the expected $log(N)$ shape, with different factors for different $m$.
+
+The following table shows a few speedup factors (rough read from the plot) for a number of unique partitioning points $m$ and vector sizes $N$.
+
+%With $m = 1$ partitioning points the speed of \tcode{nth_elements} is about $10$ times that of \tcode{std::sort} at $N=3e7$.
+%
+%With $m = 5$ partitioning points the speed of \tcode{nth_elements} is about $5$ times that of \tcode{std::sort} at $N=3e7$.
+%
+%With $m = 500$ partitioning points the speed of \tcode{nth_elements} is about $2$ times that of \tcode{std::sort} at $N=3e7$.
+%
+%With $m = 50$ partitioning points the speed of \tcode{nth_elements} is about $2$ times that of \tcode{std::sort} at $N=3e5$.
+%
+%With $m = 5$ partitioning points the speed of \tcode{nth_elements} is about $2$ times that of \tcode{std::sort} at $N=3e3$.
+
+\begin{center}
+\begin{tabular}{r|c|c} % <-- Alignments: 1st column left, 2nd middle and 3rd right, with vertical lines in between
+  \textbf{m} & \textbf{speedup} & \textbf{at N}\\
+  \hline 
+1 & 10 & $N=3e7$\\
+5 & 5 & $N=3e7$\\
+500 & 2 & $N=3e7$\\
+\hline
+10 & 3 & $N=3e5$\\
+50 & 2 & $N=3e5$\\
+\hline
+5 & 2 & $N=3e3$\\
+\end{tabular}
+\end{center}
+
+Some care is required when interpreting the plot at low N: For example at the curve $m=1000$. $N=300$, the actual number of partitioning points are saturated to $N$, that is $300$ unique partitioning points. Still, one can say, that as $N$ decreases and approaches $m$ the performance is worse than \tcode{std::sort}, but the speed in these tests are still about $85\%$ of \tcode{std::sort} even for $m \sim N$. The benefit of \tcode{nth_element} over \tcode{sort} grows with $N$ as $log N$. Further slices and ways to plot same performance data is found at \cite{p2375RefImpl}. It also shows the study repeated for uniformly random (unique) partition points with very similar conclusion, but slightly better performance.
+
+
+%\includegraphics[width=0.6\textwidth]{plotting/images/partition_points_equidistant_time_for_n_div.png}
+
+%The above image shows a different view of the same data. The execution times for \tcode{std::sort} for various vector sizes $N$ and for \tcode{nth_element} with different numbers $m$ of evenly spaced partitioning points in the vector. Arbitrary normalization.
+
+%The complexity of \tcode{nth_element} is $O(N log m)$. Therefore a thin line $k_i  N$ is also drawn for each curve $i$ where $k_i$ is set to match %at $N=3e6$. For \tcode{std::sort}, a dotted line $s × N log N$ is drawn instead. (Note how similar $N log N$ and $N$ looks in log-log.)
+
+
+%\includegraphics[width=0.6\textwidth]{plotting/images/partition_points_equidistant_time_for_n_div.png}
+%
+%This is the same data as shown in the previous figure except all data points are divided by the $s × N log N$ curve described above.
+%In other words, the image represents the execution time compared to the expected $N log N$ of \tcode{std::sort} at $N=3e6$. As expected, the \tcode{std::sort} %line approaches $1.0$ for large $N$, while the relative execution time for \tcode{nth_element} decreases as $1/log N$ for large N.
+%
+%\includegraphics[width=0.6\textwidth]{plotting/images/partition_points_equidistant_speed_for_m_vs_sort.png}
+%
+%Another view of the same data, but shows the speedup as function of $m$ for different vector sizes $N$.
+%It's interesting that even for quite small $N=3e4$ there are speedups of $2$ to $6$ times for $m=1$ to $m=20$.
 
 \section*{Acknowledgements}
 \addcontentsline{toc}{section}{Acknowledgements}
@@ -366,9 +431,16 @@ Statistics \& Probability Letters \\
 Volume 28, Issue 4, August 1996, Pages 299-310
 \url{https://doi.org/10.1016/0167-7152(95)00139-5}
 
+
+\bibitem[p2375RefImpl]{p2375RefImpl}
+Reference implementation of range-of-nths nth_element\\
+\url{https://github.com/jmlundberg/nth_element_material}
+
+\bibitem[p2375src]{p2375src}
+Document source for \emph{this} proposal and reference implementation\\
+\url{https://github.com/jmlundberg/p2375}
+
 \end{thebibliography}
 \let\addcontentsline\oldaddcontentsline% Restore \addcontentsline
 
 \end{document}
-
-
