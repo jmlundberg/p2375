@@ -1,4 +1,5 @@
 \input{common}
+%\addtolength{\textheight}{7em}
 \let\oldaddcontentsline\addcontentsline% Store \addcontentsline
 
 \sloppy
@@ -22,6 +23,7 @@
     \end{myQuoteEnumerate}%
 }%
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{lineno}
 %\iffalse
 \usepackage{xcolor}
 \usepackage{lineno}
@@ -53,15 +55,15 @@ Johan Lundberg\\
 \vspace*{-5em}
 
 \begin{tabular}{ll}
-Document \#:& P2375 D1 \\
-Date: &2021-05-14 \\
+Document \#:& D2375R1\\
+Date: &2021-12-16 \\
 Project: & Programming Language C++ \\
 Audience: & LEWG \\
 Email: &\href{mailto:lundberj@gmail.com}{lundberj@gmail.com}
 \end{tabular}
 
 \iffalse %%% FOR ONLINE ABSTRACT
-The paper proposes a generalisation of `std::nth_element`, taking a sorted range of iterators instead of a single nth element iterator, allowing arbitrary partial sorting of any sortable range.
+The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single nth element iterator, allowing arbitrary partial sorting of any sortable range.
 The use and analysis of such algorithms is widespread and mature[Alsuwaiyel2001,Panh2002,lent1996,Shen1997]  and is available to Python programmers as numpy.partition[NpPart,NPImpl] since 2014.
 \fi
 
@@ -70,19 +72,27 @@ The use and analysis of such algorithms is widespread and mature[Alsuwaiyel2001,
 
 \subsection*{Revision history vs R0}
 
-Fixed typo. (23021-12-06)
+Draft 2021-12-16: Added clarifications and more background, explanations, wording clarifications, references, summarized performance study, applications, more questions/answers. --Based on feedback and material sent to SG9 list 2021-12-09.
 
 \section{Introduction}
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single \tcode{nth} iterator, allowing arbitrary partial sorting of any sortable range.
-The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel2001,Panh2002,lent1996,Shen1997} and is available to Python programmers as numpy.partition\cite{NpPart,NPImpl} since 2014.
+
+The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel2001,Panh2002,lent1996,Shen1997} and is available to Python programmers as \tcode{numpy.partition}\cite{NpPart,NPImpl} since 2014.
 
 The single-nth \tcode{nth_element} algorithm has been part of the C++ standard library since the beginning\cite{StepLee95}, introduced as \dblquotes{\ldots  the  element  in  the  position  pointed  to  by nth  is  the  element  that  would  be  in  that position if the whole range were sorted. Also for any iterator i in the range [first, nth) and any iterator j in the range [nth, last) it holds that !(*i > *j) or comp(*i, *j) == false. It is linear on the average.}
+
+\emph{This} proposal extends the usability of \tcode{std::nth_element} to multiple \tcode{nths}. 
+That is, the previously stated post condition holds for all nth in \tcode{nths}. In other words, at each nth the range is arranged as if sorted, and all elements after each nth are no less than the element at that location.
+
+Just as with the current standard single-nth version of \tcode{std::nth_element} the purpose is \emph{faster operation}, but just as with the single-nth version, there is additional \emph{semantic clarity} in performing only the required partitioning. 
+In this specific sense it's in the same category as \tcode{std::partial_sort}.
 
 A possible implementation of the range-of-nths algorithm is provided (section \ref{Implementation}).
 It translates naturally to \tcode{std::ranges} versions just like \tcode{std::nth_element}, returning \tcode{last}.
 
-To clarify what is new, the addition is called \tcode{std::nth_element\underline{s}} throughout the text, but is proposed to go as \tcode{nth_element}. 
+Current alternatives are either at least somewhat hard to write correctly and/or less performant.
 
+To clarify what is new, the addition is here called \tcode{std::nth_element\underline{s}}, but is proposed to go as \tcode{nth_element}. 
 
 \section{The algorithm}
 \label{Implementation}
@@ -99,7 +109,7 @@ It supports a range-of-nths as proposed here and the implementation\cite{NPImpl}
 
 A possible implementation\footnote{
 The implementation is not the point of the proposal but it may help explain it. Feedback would be very much appreciated. 
-The algorithm described in \cite{Alsuwaiyel2001} is a little bit simpler since it takes \emph{unique} nths, something that is not reasonable to require here. The algorithms is \mbox{O(N log m)} except for a small N-independent term \mbox{O(M-m)} where M is the size of nths, due to the iterator comparisons and increments in \tcode{find_if_not} to skip over doublets in nths. The first if-statement is found in existing single-nth \tcode{nth_element} implementations, but here it also prevents some unnecessary bisections of nths.}
+The algorithm described in \cite{Alsuwaiyel2001} is a little bit simpler since it takes \emph{unique} nths, something that is not reasonable to require here. The algorithms is \mbox{O(N log m)} except for a small N-independent term \mbox{O(M-m)} where M is the size of nths, due to the iterator comparisons and increments in \tcode{find_if_not} to skip over doublets in nths. The first if-statement is found in existing single-nth \tcode{nth_element} implementations, but here it also prevents some unnecessary bisections of nths.}\cite{p2375RefImpl}
 is shown below. Comparisons and projections can also be fed through in the most natural way. 
 
 \begin{codeblock}
@@ -124,8 +134,7 @@ constexpr void @\textbfx{nth_elements}@(RandomAccessIterator first,
 
 \end{codeblock}
 
-
-\section{Before/After}
+\section{Tony Tables (Before/After)}
 
 Existing alternatives are to sort the whole container or to figure out a series of calls to e.g. \tcode{nth_element} and \tcode{partial_sort}. 
 The examples below could be the linear time partitioning of messages to be
@@ -147,34 +156,77 @@ auto nths=vector{v.begin()+25,v.begin()+100,v.begin()+1000};
 
 \subsection*{After \textnormal{ Simple and O(N)}}
 
-\hspace{2ex}\framebox{\tcode{nth_elements(v, nths, pred);}}
-\vspace*{1ex}
+The tony table with this proposal, \emph{After}, for all examples are the same:\newline
 
-\subsection*{Before \textnormal{Alternative 1a: Hand-wired bisection for nths of known size. O(N) but messy}}
-\begin{codeblock}
+\begin{tabular}{|l|} 
+  \hline 
+  \textbf{After} \\
+  \hline 
+\begin{codeblock} 
+nth_elements(v, nths, pred);
+\end{codeblock} 
+\\
+\hline 
+\end{tabular} 
+
+
+\subsection*{Alternative 1a: Hand-wired bisection for nths of known size 3. O(N) but messy}
+
+\begin{tabular}{|l|} 
+  \hline 
+  \textbf{Before} \\
+  \hline 
+\begin{codeblock} 
 nth_element(v.begin(), nths[1], v.end(), pred);
 nth_element(v.begin(), nths[0], nths[1], pred);
 nth_element(nths[1]+1, nths[2], v.end(), pred);
-\end{codeblock}
-Did we get this right? Is it correct for repeated nths or empty v?
+\end{codeblock} 
+\\
+\hline 
+\end{tabular} 
 
-\subsection*{Before \textnormal{Alternative 1b: Hand-wired for size 3. O(N $\cdot$ M)}}
-\begin{codeblock}
+Did we get this right? Is it correct for repeated nths or empty v?
+This is an attempt at manually figuring out and hand-inlining \emph{this} proposal for a know nths size equal to 3.
+
+\subsection*{Alternative 1b: Hand-wired for size 3. O(N $\cdot$ M)}
+
+Hand-wired simpler alternative. Easier to figure out, but O(N $\cdot$ M):
+
+\begin{tabular}{|l|} 
+  \hline 
+  \textbf{Before} \\
+  \hline 
+\begin{codeblock} 
 nth_element(v.begin(), nths[0],v.end(), pred);
 nth_element(nths[0], nths[1], v.end(), pred);
 nth_element(nths[1], nths[2], v.end(), pred);
-\end{codeblock}
+\end{codeblock} 
+\\
+\hline 
+\end{tabular} 
+
 Did we get this right?
 
-\subsection*{Before \textnormal{Alternative 2: Simple but O(N log N):}}
-\begin{codeblock}
+\subsection*{Alternative 2: Simple but O(N log N)}
+
+\begin{tabular}{|l|} 
+  \hline 
+  \textbf{Before} \\
+  \hline 
+\begin{codeblock} 
 sort(v,pred);
 \end{codeblock}
+\\
+\hline 
+\end{tabular} 
 
-\newpage
-\section{Applications}
+\section{Examples and Applications}
 
-It partitions into any number of partitions as shown in the previous section. Partitioning a bunch of ponies into several age groups, then sort one group by name.
+It partitions into any number of partitions as shown in the previous section. Further examples and applications follow.
+
+\subsection{\tcode{nth_elements} and sort}
+
+Partitioning a bunch of ponies into several age groups, then sort one group by name.
 
 \begin{codeblock}
 struct Pony{
@@ -186,13 +238,53 @@ auto end=nth_elements(v, nths, std::greater{}, Pony::age);
 std::sort(nths[3], nths[4], std::less{}, Pony::name);
 \end{codeblock}
 
-\subsubsection*{Partitioning with interpolation. Quantiles.}
+\subsection{\tcode{nth_elements} into slots}
+Context: partitioning into a fixed number of slots
+\begin{codeblock}
+vector<decltype(v)::iterator> nths;
+for(size_t slot=1; slot<16 ; ++slot){
+	nths.push_back(v.begin()+ min(slot*2048,N));
+}
+\end{codeblock}
+or at some other arbitrary iterators in the inclusive range [first,last].
+\begin{codeblock}
+auto nths=vector{v.begin()+25,v.begin()+100,v.begin()+1000}; 
+\end{codeblock}
+
+\subsection{Outlier filtering}
+
+With two partitioning points, the lowest a, and highest b elements are excluded from a range in constant time with a single call to the proposed extension.
+
+\subsection{Pagination and sorted subset}
+
+A small sorted windows into a large data set can be selected as if sorted by partitioning at two points. For example, if `j` items fit on a display page, we can jump to page \tcode{k}, that is, into the range from \tcode{a=v.begin()+j*k} to \tcode{b=v.begin()+j*(k+1)}:
+
+\begin{codeblock}
+std::nth_element({a,b}, v);
+processPage(a,b); // May also now sort the small subrange with std::sort(a,b);
+\end{codeblock}
+
+An option is to pre-partition into all pages, exactly as the \emph{slots} example above.
+
+\subsection{Partitioning with interpolation. Quantiles, Percentiles.}
 
 % As such \tcode{nth_element(s)} are general algorithms on any sortable, and are to quantiles what
 % \tcode{std::accumulate} and \tcode{std::inner_product} are to statistical mean and weighted mean.
 
 \tcode{nth_elements} can be used to efficiently \emph{implement} the calculation of a single or a range of quantiles.
-To do interpolation one may directly partition at two iterators at each quantile point. For example, partitioning N elements at a single quantile specified as a divisor d (where d=2 would be median and d=100 would mark the first percentile).
+
+The current standard single-nth \tcode{std::nth_element} is actually not generally enough to calculate even a single quantile point, such as the median in the way that is often preferred: For example the [median](\url{https://en.wikipedia.org/wiki/Median}) of an even number of elements is typically taken  to be the mean of the two central elements. With the range-of-nth \tcode{nth_element} version single or multiple quantiles can be calculated efficiently.
+
+It's also a common situation to calculate more than one quantile, such as min, 25\%, 50\% (median), 75\%, max. This requires 5 to 8 partition points depending on the size of the data. With \emph{this} proposal this can be done in O(N).
+
+Also note wikipedia on [Percentiles](\url{https://en.wikipedia.org/wiki/Percentile}), and [Estimating quantiles from a
+sample](\tcode{https://en.wikipedia.org/wiki/Quantile\#Estimating_quantiles_from_a_sample}).
+
+\enlargethispage*{-8em}
+
+To do interpolation around each requested quantile (such as the median of even N or a percentile that does not divide N) one may directly partition at two iterators at each requested quantile point. For example, partitioning N elements at a single quantile specified as a divisor d (where d=2 would be median and d=100 would mark the first percentile).
+
+
 \begin{codeblock}
 auto n = N == 0?0:N-1;
 auto [q,r] = div(n, d);
@@ -223,18 +315,63 @@ In Python, \tcode{numpy.quantile}%
 \footnote{
 It defaults to the above division by N-1 to do linear interpolation but there's a plethora of variations (nine different modes supported by many statistical libraries and tools) on which indices to use, rounding and interpolation/\mbox{selection} and handling of edge cases. 
 A good overview is found in P2119R0 commenting on the paper P1708R4 \dblquotes{Simple Statistical Functions} which proposes user-facing median and quantile similar to \tcode{numpy.partition}, returning by value (not via iterators).}
- takes a range of floating point quantile points in [0.0,1.0] and uses the previously mentioned multi-nth version of \tcode{numpy.partition}%
-.
+ takes a range of floating point quantile points in [0.0,1.0] and uses the previously mentioned multi-nth version of \tcode{numpy.partition}%.
 
+\enlargethispage*{-5em}
+\subsection{Histogram normalization and bin selection. Application to image equalization}
 
+Image equalization, or data equalization in general is a data processing technique used to enhanced contrast.\footnote{
+The subject described for example at \url{https://en.wikipedia.org/wiki/Histogram_equalization} and \url{https://www.tutorialspoint.com/dip/histogram_equalization.htm}}
 
-\newpage
+Equalization makes use of the [Cumulative distribution function, CDF\footnote{CDF: \url{https://en.wikipedia.org/wiki/Cumulative_distribution_function}} of the image (or data in general). The cumulative distribution can be estimated by taking the cumulant of a \emph{histogram} of the data. Finding good bins is itself done by histogram normalization, which itself relies on an estimated CDF.
+
+An interesting alternative to cumulant-of-histogram, is to calculate or estimate the CDF from the ordered data directly. If this is done with a full sort, and exact descriptive CDF is obtained, resulting in a loss-less equalization (modulo floating point and image format aspects).%
+\footnote{A more detailed description of sort-based image equalization: Image enhancement using sorted histogram specification and POCS postprocessing -
+Il-Lyong Jung and Chang-Su Kim, 2007 IEEE}.
+
+As a performance optimization we can avoid a full sort, and instead use \tcode{nth_elements} and ensure exact results at specific cumulant values (partition points) in the CDF, such as at 0.25, 0.5, 0.75. That is, we use a range-of-nth partitioning to approximate the full sorted data. Worked through examples are found at \cite{p2375RefImpl}.
+
+%Example image: Einstein. Original (left), equalized using sort-based CDF (right)
+%
+%
+%Again, the original (left), compared to equalization using approximate CDF using **range-of-nths** partitioning with `m=7`, `m=5`, or `m=3` partition points.
+%
+%
+%The exact CDF (using sort) is shown in gray, along with the `range-of-nths` approximations.
+%
+%Example image: Tennforsen (Sweden). Original (left), equalized using sort-based CDF (right)
+%
+%original, vs sort based:
+%
+%\begin{tabular}{|l|l|} 
+%\hline
+%Original: & Equalized using full sort\\
+%\includegraphics[width=0.50\textwidth]{plotting/examples/forsen.png} &
+%\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_sort.png} \\
+%\hline
+%Equalized using range-of-nths: m=3: & Equalized using range-of-nths: m=3\\
+%\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_partition2.png} &
+%\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_partition5.png}\\
+%\hline
+%\end{tabular}
+%
+%Again, the original (left), compared to equalization using approximate CDF using **range-of-nths** partitioning with `m=5`, `m=3`, or `m=3` partition points:
+%
+%original, vs `m=5`:
+%
+%`m=3`, vs `m=2`:
+%
+%The exact CDF (using sort) is shown in gray, along with the `range-of-nths` approximations.
+%
+%\includegraphics[width=0.21\textwidth]{plotting/examples/forsen_cdf_approximation.png}
+%
+
 
 \section{Wording and Synopsis }
 
 \subsection{First wording draft \protect{\tcode{[alg.nth.element]}}}
 
-\label{wording}
+\label{wording}\label{synopsis}
 
 \textbf{1} Let comp be less{} and proj be identity{} for the overloads with no parameters by those names.
 
@@ -248,8 +385,8 @@ A good overview is found in P2119R0 commenting on the paper P1708R4 \dblquotes{S
 \textbf{5} 
 Complexity: For the overloads with no ExecutionPolicy, linear on average.
 For the overloads with an ExecutionPolicy, O(N) applications of the predicate, and O(N log N) swaps, where N = last - first. 
-\added{For overloads taking a range [nths_first,nths_last) but no ExecutionPolicy the complexity is approximately \mbox{O(N log m)} where m is the number of unique elements in [nths_first,nths_last).
-For overloads taking a range [nths_first,nths_last) and an ExecutionPolicy the complexity is \mbox{O(N log N)}.}
+\added{For overloads taking a range [nths_first,nths_last) but no ExecutionPolicy the complexity is approximately \mbox{O(N log m + M)} where m is the number of unique elements in [nths_first,nths_last) where M = nths_last - nths_first.
+For overloads taking a range [nths_first,nths_last) and an ExecutionPolicy the complexity is \mbox{O(N log N + M)}.}
 
 \subsection{Synopsis -- \tcode{<algorithm> [algorithm.syn]}}
 
@@ -307,11 +444,68 @@ Q: What if some elements of \tcode{nths} are equal to last. A: As with \tcode{nt
 
 Q: What if some elements of \tcode{nths} are equal to each other A: By specification, not a problem.
 
+New questions since P0 below. Many thanks to all who commented.
+
+\subsection{Q: Is there's a need to require `nths` be `sized_range`?}
+
+A: Not sure, I don't think so. The example implementation does not use .size(). I first had a different answer to this but updated after further comments.
+
+
+\subsection{Q: How should the `nths` be provided?}
+
+The current-standard single-nth version uses a single iterator `nth` to designate the location in the range. A range of iterators seems to me the most natural way to designate multiple arbitrary locations in a range.
+
+This seem \emph{least-surprise} and offers flexibility as well as natural combination with other operations (such as seen in the examples here and in the proposal). Python uses indices rather than iterators to express locations in lists and arrays, and its incarnation of the proposed algorithm uses range-of-indices (or a single value) to specify the partition point(s)\cite{NpPart}.
+
+\subsection{Q: Request for more motivation. Benefit and performance beyond Ordo.}
+
+A: The comment is appreciated. Expanded the paper introduction and Examples and Application section. Added performance study, section \ref{perfstudy}.
+
+An interesting discussion of \tcode{std::sort} vs single-nth \tcode{std::nth_element} and \tcode{std::partial_sort} is found at [CppCon 2018: Fred Tingaud "A Little Order: Delving into the STL sorting algorithms"](\url{https://www.youtube.com/watch?v=-0tO3Eni2uo})
+
+\newpage
+\section{Reference implementation and practical performance}
+\label{perfstudy}
+
+A reference implementation is found at \cite{p2375src}. A performance study is found at \cite{p2375RefImpl} and summarized here. 
+\subsubsection*{Time vs \tcode{std::sort} for equidistant partitioning points}
+
+\begin{center}
+\includegraphics[width=0.55\textwidth]{plotting/images/partition_points_equidistant_speed_for_n_vs_sort.png}
+\end{center}
+
+The above image shows the execution speed of \tcode{nth_element} compared to \tcode{std::sort} for various vector sizes $N$.
+The data to sort here consists of randomly shuffled doubles, and the range-of-nths version of \tcode{nth_element} was given different numbers $m$ of evenly spaced partitioning points in the vector. Dotted lines show lines $k_i \cdot log(N)$ fitted to pass though each curve at $N=3e6$.
+
+The image shows that the speed curves approximately follow the expected $log(N)$ shape, with different factors for different $m$.
+
+The following table shows a few speedup factors (rough read from the plot) for a number of unique partitioning points $m$ and vector sizes $N$.
+
+\begin{center}
+\begin{tabular}{|r|c|c|} % <-- Alignments: 1st column left, 2nd middle and 3rd right, with vertical lines in between
+  \hline 
+  \textbf{m} & \textbf{speedup factor} & \textbf{at N}\\
+  \hline 
+1 & 10 & $N=3e7$\\
+5 & 5 & $N=3e7$\\
+500 & 2 & $N=3e7$\\
+\hline
+10 & 3 & $N=3e5$\\
+50 & 2 & $N=3e5$\\
+\hline
+5 & 2 & $N=3e3$\\
+  \hline 
+\end{tabular}
+\end{center}
+
+Some care is required when interpreting the plot at low N: For example at the curve $m=1000$. $N=300$, the actual number of partitioning points are saturated to $N$, that is $300$ unique partitioning points. Still, one can say, that as $N$ decreases and approaches $m$ the performance is worse than \tcode{std::sort}, but the speed in these tests are still about $80\%$ of \tcode{std::sort} even for $m \sim N$. The benefit of \tcode{nth_element} over \tcode{sort} grows with $N$ as $log N$. Further slices and ways to plot the same performance data is found at \cite{p2375RefImpl}. It also shows the study repeated for uniformly random (unique) partition points with very similar conclusion, but slightly better performance.
+
+
 \section*{Acknowledgements}
 \addcontentsline{toc}{section}{Acknowledgements}
 
 Many thanks to undisclosed proofreaders and to 
-Albin Fredriksson and Marco Rubini for helpful discussions.
+Albin Fredriksson and Marco Rubini for helpful discussions. Many thanks to all who gave comments and feedback.
 
 
 \renewcommand{\bibname}{References}
@@ -366,9 +560,16 @@ Statistics \& Probability Letters \\
 Volume 28, Issue 4, August 1996, Pages 299-310
 \url{https://doi.org/10.1016/0167-7152(95)00139-5}
 
+
+\bibitem[p2375RefImpl]{p2375RefImpl}
+Performance study and usage examples on \emph{this} proposal.\\
+\url{https://github.com/jmlundberg/nth_element_material}
+
+\bibitem[p2375src]{p2375src}
+Document source for \emph{this} proposal including reference implementation\\
+\url{https://github.com/jmlundberg/p2375}
+
 \end{thebibliography}
 \let\addcontentsline\oldaddcontentsline% Restore \addcontentsline
 
 \end{document}
-
-
