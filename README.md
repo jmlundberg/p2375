@@ -25,8 +25,7 @@ lundberj@gmail.com , or at https://www.includecpp.org/discord/, or https://www.l
 Yes: https://isocpp.org/files/papers/D2375R1.pdf
 
 Draft R1 incorporates: Added clarifications and more background, explanations, wording clarifications,
-references, summarized performance study, applications, more questions/answers. –Based on
-feedback and material sent to SG9 list 2021-12-09. Synopsis: S last argument was missing.
+references, summarized performance study, applications, more questions/answers.
 
 ### Performance study
 

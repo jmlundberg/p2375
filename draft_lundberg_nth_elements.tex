@@ -35,7 +35,7 @@
 %\linenumbers
 %\fi
 %%%%%%%%%%%%%%%%%%%%%%%%
-\linespread{1.2}
+\linespread{1.0}
 %%%%%%%%%%%%%%%%%%%%%%%%
 \makeatletter
 \renewcommand\tableofcontents{%
@@ -56,7 +56,7 @@ Johan Lundberg\\
 
 \begin{tabular}{ll}
 Document \#:& D2375R1\\
-Date: &2021-12-19 \\
+Date: &2021-12-25 \\
 Project: & Programming Language C++ \\
 Audience: & LEWG \\
 Email: &\href{mailto:lundberj@gmail.com}{lundberj@gmail.com}
@@ -68,11 +68,14 @@ The use and analysis of such algorithms is widespread and mature[Alsuwaiyel2001,
 \fi
 
 \subsection*{Contents}
+\renewcommand{\baselinestretch}{1.0}\normalsize
 \tableofcontents
+\renewcommand{\baselinestretch}{1.2}\normalsize
 
 \subsection*{Revision history vs R0}
 
-Draft 2021-12-16: Added clarifications and more background, explanations, wording clarifications, references, summarized performance study, applications, more questions/answers. --Based on feedback and material sent to SG9 list 2021-12-09. Synopsis: \tcode{S last} argument was missing 2021-12-19.
+2021-12-25: Simplified wording (change marked at section \ref{synopsis}). Added images for equalization example. Formatting and typos. Added example of \emph{Before} with projections, and example \emph{Before} with fixed size m=5.\newline 
+2021-12-16: Added clarifications and more background, explanations, wording clarifications, references, summarized performance study, applications, more questions/answers. --Based on feedback and material sent to SG9 list 2021-12-09. Synopsis: \tcode{S last} argument was missing 2021-12-19.
 
 \section{Introduction}
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single \tcode{nth} iterator, allowing arbitrary partial sorting of any sortable range.
@@ -156,14 +159,19 @@ auto nths=vector{v.begin()+25,v.begin()+100,v.begin()+1000};
 
 \subsection*{After \textnormal{ Simple and O(N)}}
 
-The tony table with this proposal, \emph{After}, for all examples are the same:\newline
+For all examples, the Tony Tables--\emph{After} case is the same:\newline
 
-\begin{tabular}{|l|} 
+\hspace{3ex}\begin{tabular}{|l|} 
   \hline 
-  \textbf{After} \\
+  \textbf{$\star \star$ After $\star \star$} \\
   \hline 
 \begin{codeblock} 
 nth_elements(v, nths, pred);
+\end{codeblock}\\[1em]
+or, for the examples using a projection:
+\\
+\begin{codeblock} 
+nth_elements(v, nths, pred, proj);
 \end{codeblock} 
 \\
 \hline 
@@ -172,7 +180,7 @@ nth_elements(v, nths, pred);
 
 \subsection*{Alternative 1a: Hand-wired bisection for nths of known size 3. O(N) but messy}
 
-\begin{tabular}{|l|} 
+\hspace{3ex}\begin{tabular}{|l|} 
   \hline 
   \textbf{Before} \\
   \hline 
@@ -188,18 +196,51 @@ nth_element(nths[1]+1, nths[2], v.end(), pred);
 Did we get this right? Is it correct for repeated nths or empty v?
 This is an attempt at manually figuring out and hand-inlining \emph{this} proposal for a know nths size equal to 3.
 
-\subsection*{Alternative 1b: Hand-wired for size 3. O(N $\cdot$ M)}
+If we are using a projection, we must use sub-ranges or something to the same effect (and with the same risk of corner-case bugs, eg missed +1 at the right places):
+
+\hspace{3ex}\begin{tabular}{|l|} 
+  \hline 
+  \textbf{Before} \\
+  \hline 
+\begin{codeblock} 
+ranges::nth_element(v, nths[1], pred, proj);
+ranges::nth_element(sub_range(v.begin(),nths[1]), nths[0], pred, proj);
+ranges::nth_element(sub_range(nths[1]+1,v.end()), nths[2], pred, proj);
+\end{codeblock} 
+\\
+\hline 
+\end{tabular} 
+\subsection*{Alternative 1b: Hand-wired bisection for nths of known size 5. O(N) but messy}
+
+\hspace{3ex}\begin{tabular}{|l|} 
+  \hline 
+  \textbf{Before} \\
+  \hline 
+\begin{codeblock} 
+nth_element(v.begin(), nths[5/2-1], v.end(), pred);
+nth_element(v.begin(), nths[(5/2)/2-1], nths[5/2-1], pred);
+nth_element(nths[(5/2)/2-1]+1, nths[5/2-1], v.end(), pred);
+nth_element(nths[(5/2)-1]+1, nths[(5/2)/2+5/2-1], nths[5-1]), pred);
+nth_element(nths[5-1]+1, nths[(5/2)/2+5/2-1], v.end(), pred);
+\end{codeblock} 
+\\
+\hline 
+\end{tabular} 
+
+Did we get this right?
+
+\subsection*{Alternative 1c: Hand-wired for size 3. O(N $\cdot$ M)}
 
 Hand-wired simpler alternative. Easier to figure out, but O(N $\cdot$ M):
 
-\begin{tabular}{|l|} 
+\hspace{3ex}\begin{tabular}{|l|} 
   \hline 
   \textbf{Before} \\
   \hline 
 \begin{codeblock} 
 nth_element(v.begin(), nths[0],v.end(), pred);
-nth_element(nths[0], nths[1], v.end(), pred);
-nth_element(nths[1], nths[2], v.end(), pred);
+nth_element(nths[0]+1, nths[1], v.end(), pred);
+nth_element(nths[1]+1, nths[2], v.end(), pred);
 \end{codeblock} 
 \\
 \hline 
@@ -209,7 +250,7 @@ Did we get this right?
 
 \subsection*{Alternative 2: Simple but O(N log N)}
 
-\begin{tabular}{|l|} 
+\hspace{3ex}\begin{tabular}{|l|} 
   \hline 
   \textbf{Before} \\
   \hline 
@@ -257,7 +298,7 @@ With two partitioning points, the lowest a, and highest b elements are excluded 
 
 \subsection{Pagination and sorted subset}
 
-A small sorted windows into a large data set can be selected as if sorted by partitioning at two points. For example, if `j` items fit on a display page, we can jump to page \tcode{k}, that is, into the range from \tcode{a=v.begin()+j*k} to \tcode{b=v.begin()+j*(k+1)}:
+A small sorted windows into a large data set can be selected as if sorted by partitioning at two points. For example, if \tcode{j} items fit on a display page, we can jump to page \tcode{k}, that is, into the range from \tcode{a=v.begin()+j*k} to \tcode{b=v.begin()+j*(k+1)}:
 
 \begin{codeblock}
 std::nth_element({a,b}, v);
@@ -280,7 +321,6 @@ It's also a common situation to calculate more than one quantile, such as min, 2
 Also note wikipedia on [Percentiles](\url{https://en.wikipedia.org/wiki/Percentile}), and [Estimating quantiles from a
 sample](\tcode{https://en.wikipedia.org/wiki/Quantile\#Estimating_quantiles_from_a_sample}).
 
-\enlargethispage*{-8em}
 
 To do interpolation around each requested quantile (such as the median of even N or a percentile that does not divide N) one may directly partition at two iterators at each requested quantile point. For example, partitioning N elements at a single quantile specified as a divisor d (where d=2 would be median and d=100 would mark the first percentile).
 
@@ -302,6 +342,7 @@ if (nths[0]!=last){
 In the above we did floating point based interpolation, but 
 one may stay in integer arithmetic\footnote{\tcode{i_lerp(auto a,auto b,auto r,auto d)\{return a+(r*(b-a))/d;\}}. Yes, there are other ways to express this depending on type, e.g. extra work to avoid overflow.}
  for example when working with chrono durations, iterators and indices. Any type the user knows how to interpolate.
+
  
 \begin{codeblock}
 auto last = nth_elements(v, nths, std::less{}, Pony::age);
@@ -317,80 +358,69 @@ It defaults to the above division by N-1 to do linear interpolation but there's 
 A good overview is found in P2119R0 commenting on the paper P1708R4 \dblquotes{Simple Statistical Functions} which proposes user-facing median and quantile similar to \tcode{numpy.partition}, returning by value (not via iterators).}
  takes a range of floating point quantile points in [0.0,1.0] and uses the previously mentioned multi-nth version of \tcode{numpy.partition}%.
 
-\enlargethispage*{-5em}
-\subsection{Histogram normalization and bin selection. Application to image equalization}
+\newpage
+
+\subsection{Histogram equalization and bin selection. Application to image equalization} 
 
 Image equalization, or data equalization in general is a data processing technique used to enhanced contrast.\footnote{
-The subject described for example at \url{https://en.wikipedia.org/wiki/Histogram_equalization} and \url{https://www.tutorialspoint.com/dip/histogram_equalization.htm}}
+The subject is described for example at \url{https://en.wikipedia.org/wiki/Histogram_equalization} and \url{https://www.tutorialspoint.com/dip/histogram_equalization.htm}} 
+Equalization makes use of the Cumulative distribution function, CDF\footnote{CDF: \url{https://en.wikipedia.org/wiki/Cumulative_distribution_function}} of the image (or data in general). The cumulative distribution can be estimated by taking the cumulant of a \emph{histogram} of the data. Finding good bins is itself done by histogram equalization, which itself relies on an estimated CDF.
 
-Equalization makes use of the [Cumulative distribution function, CDF\footnote{CDF: \url{https://en.wikipedia.org/wiki/Cumulative_distribution_function}} of the image (or data in general). The cumulative distribution can be estimated by taking the cumulant of a \emph{histogram} of the data. Finding good bins is itself done by histogram normalization, which itself relies on an estimated CDF.
-
-An interesting alternative to cumulant-of-histogram, is to calculate or estimate the CDF from the ordered data directly. If this is done with a full sort, and exact descriptive CDF is obtained, resulting in a loss-less equalization (modulo floating point and image format aspects).%
+An interesting alternative to cumulant-of-histogram, is to obtain the CDF from ordering the data directly. If this is done with a full sort, and exact descriptive CDF is obtained, resulting in a loss-less equalization (modulo floating point and image format aspects).%
 \footnote{A more detailed description of sort-based image equalization: Image enhancement using sorted histogram specification and POCS postprocessing -
-Il-Lyong Jung and Chang-Su Kim, 2007 IEEE}.
+Il-Lyong Jung and Chang-Su Kim, 2007 IEEE International Conference on Image Processing, ICIP 2007 Proceedings.}
 
-As a performance optimization we can avoid a full sort, and instead use \tcode{nth_elements} and ensure exact results at specific cumulant values (partition points) in the CDF, such as at 0.25, 0.5, 0.75. That is, we use a range-of-nth partitioning to approximate the full sorted data. Worked through examples are found at \cite{p2375RefImpl}.
+As a performance optimization we can avoid a full sort, and instead use \tcode{nth_elements} and ensure exact results at specific cumulant values (partition points) in the CDF, such as at 0.25, 0.5, 0.75. That is, we use a range-of-nth partitioning to approximate the full sorted data. Worked through examples are found at \cite{p2375RefImpl}. In summary, consider the following image of Tännforsen (Sweden's greatest waterfall), with three different equalization methods.
 
-%Example image: Einstein. Original (left), equalized using sort-based CDF (right)
-%
-%
-%Again, the original (left), compared to equalization using approximate CDF using **range-of-nths** partitioning with `m=7`, `m=5`, or `m=3` partition points.
-%
-%
-%The exact CDF (using sort) is shown in gray, along with the `range-of-nths` approximations.
-%
-%Example image: Tennforsen (Sweden). Original (left), equalized using sort-based CDF (right)
-%
-%original, vs sort based:
-%
-%\begin{tabular}{|l|l|} 
-%\hline
-%Original: & Equalized using full sort\\
-%\includegraphics[width=0.50\textwidth]{plotting/examples/forsen.png} &
-%\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_sort.png} \\
-%\hline
-%Equalized using range-of-nths: m=3: & Equalized using range-of-nths: m=3\\
-%\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_partition2.png} &
-%\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_partition5.png}\\
-%\hline
-%\end{tabular}
-%
-%Again, the original (left), compared to equalization using approximate CDF using **range-of-nths** partitioning with `m=5`, `m=3`, or `m=3` partition points:
-%
-%original, vs `m=5`:
-%
-%`m=3`, vs `m=2`:
-%
-%The exact CDF (using sort) is shown in gray, along with the `range-of-nths` approximations.
-%
-%\includegraphics[width=0.21\textwidth]{plotting/examples/forsen_cdf_approximation.png}
-%
+\begin{tabular}{|l|l|} 
+\hline
+Original: & Equalized using full sort\\
+\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_roundtrip.small.jpg} &
+\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_sort.small.jpg} \\
+\hline
+Equalized using range-of-nths: m=2: & Equalized using range-of-nths: m=5\\
+\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_partition2.small.jpg} &
+\includegraphics[width=0.50\textwidth]{plotting/examples/forsen_partition5.small.jpg}\\
+\hline
+\end{tabular}
+\enlargethispage*{1em}
+
+\begin{center}
+\includegraphics[width=0.55\textwidth]{plotting/examples/forsen_cdf_approximation.png}
+\end{center}
+Above, the exact CDF (using sort) of the original image is shown in gray, along with approximations using \emph{range-of-nths}. At m=2, the equalization algorithm is equivalent to mapping the image min,max to grayscale values zero and 1.
 
 
+\newpage
 \section{Wording and Synopsis }
 
 \subsection{First wording draft \protect{\tcode{[alg.nth.element]}}}
+
+\added{Underlined green text} marks additions.
 
 \label{wording}\label{synopsis}
 
 \textbf{1} Let comp be less{} and proj be identity{} for the overloads with no parameters by those names.
 
 \textbf{2} Preconditions: [first, nth) and [nth, last) are valid ranges. For the overloads in namespace std, RandomAccessIterator meets the Cpp17ValueSwappable requirements ([swappable.requirements]), and the type of *first meets the Cpp17MoveConstructible (Table 30) and Cpp17MoveAssignable (Table 32) requirements.
-\added{For the overloads taking a range [nths_first,nths_last), \newline RandomAccessIterator2 is a RandomAccess iterator, and *nths_first is convertible to \newline RandomAccessIterator. For every iterator i and j in the range [nths_first,nths_last), it holds that if (i<j) then !(*j<*i).}
+\added{For the overloads taking a range [nths_first,nths_last), \newline RandomAccessIterator2 is a RandomAccess iterator, and *nths_first is convertible to \newline RandomAccessIterator.}
 
 \textbf{3} Preconditions: The elements e of [first, last) are partitioned with respect to the expression bool(invoke(comp, invoke(proj, e), value)).
 
-\textbf{4} Effects: After nth_­element the element in the position pointed to by nth is the element that would be in that position if the whole range were sorted with respect to comp and proj, unless nth==last. Also for every iterator i in the range [first, nth) and every iterator j in the range [nth, last) it holds that: bool(invoke(comp, invoke(proj, *j), invoke(proj, *i))) is false.
+\textbf{4} Effects: After nth_­element the element in the position pointed to by nth is the element that would be in that position if the whole range were sorted with respect to comp and proj, unless nth==last. Also for every iterator i in the range [first, nth) and every iterator j in the range [nth, last) it holds that: bool(invoke(comp, invoke(proj, *j), invoke(proj, *i))) is false. 
+\added{For the overloads taking a range of nths, this holds for all nth in nths}$^\ddagger$
 
 \textbf{5} 
 Complexity: For the overloads with no ExecutionPolicy, linear on average.
 For the overloads with an ExecutionPolicy, O(N) applications of the predicate, and O(N log N) swaps, where N = last - first. 
-\added{For overloads taking a range [nths_first,nths_last) but no ExecutionPolicy the complexity is approximately \mbox{O(N log m + M)} where m is the number of unique elements in [nths_first,nths_last) where M = nths_last - nths_first.
+\added{For overloads taking a range [nths_first,nths_last) but no ExecutionPolicy the complexity is approximately \mbox{O(N log m + M)} where m is the number of unique elements in [nths_first,nths_last), and M = nths_last - nths_first.
 For overloads taking a range [nths_first,nths_last) and an ExecutionPolicy the complexity is \mbox{O(N log N + M)}.}
+
+$\ddagger$: \textbf{Note:} Rev R0 had an different wording with the same intention, but was redundant, as well as incomplete with respect to \emph{comp} and \emph{proj}.
 
 \subsection{Synopsis -- \tcode{<algorithm> [algorithm.syn]}}
 
-Added signatures:
+Added signatures \tcode{std::}
 
 \begin{codeblockAdd}
 template<class RandomAccessIterator, class RandomAccessIterator2>
@@ -418,6 +448,11 @@ RandomAccessIterator first,
 RandomAccessIterator2 nths_first, RandomAccessIterator2 nths_last,
 RandomAccessIterator last, Compare comp);
 
+\end{codeblockAdd}
+
+Added signatures \tcode{std::ranges::}
+
+\begin{codeblockAdd}
 namespace ranges {
   template<random_access_iterator I, sentinel_for<I> S, 
   random_access_range R2, class Comp = ranges::less, class Proj = identity>
@@ -433,7 +468,7 @@ namespace ranges {
 }
 \end{codeblockAdd}
 
-
+\newpage
 \section{Questions and Answers}
 
 Q: What's the best name? A: I suggest to reuse \tcode{nth_element} for discoverability but could as well be a separate name. Numpy calls both single nth and range-of-nths \dblquotes{\tcode{partition}}.
@@ -446,18 +481,18 @@ Q: What if some elements of \tcode{nths} are equal to each other A: By specifica
 
 New questions since P0 below. Many thanks to all who commented.
 
-\subsection{Q: Is there's a need to require `nths` be `sized_range`?}
+\subsection{Q: Is there's a need to require \tcode{nths} be \tcode{sized_range}?}
 
-A: Not sure, I don't think so. The example implementation does not use .size(). I first had a different answer to this but updated after further comments.
+A: Not sure, I don't think so. The example implementation does not use .size().
 
 
-\subsection{Q: How should the `nths` be provided?}
+\subsection{Q: How should the \tcode{nths} be provided?}
 
-The current-standard single-nth version uses a single iterator `nth` to designate the location in the range. A range of iterators seems to me the most natural way to designate multiple arbitrary locations in a range.
+The current-standard single-nth version uses a single iterator \tcode{nth} to designate the location in the range. A range of iterators seems to me the most natural way to designate multiple arbitrary locations in a range.
 
 This seem \emph{least-surprise} and offers flexibility as well as natural combination with other operations (such as seen in the examples here and in the proposal). Python uses indices rather than iterators to express locations in lists and arrays, and its incarnation of the proposed algorithm uses range-of-indices (or a single value) to specify the partition point(s)\cite{NpPart}.
 
-\subsection{Q: Request for more motivation. Benefit and performance beyond Ordo.}
+\subsection{Q: Benefits and performance beyond Ordo.}
 
 A: The comment is appreciated. Expanded the paper introduction and Examples and Application section. Added performance study, section \ref{perfstudy}.
 
@@ -506,7 +541,6 @@ Some care is required when interpreting the plot at low N: For example at the cu
 
 Many thanks to undisclosed proofreaders and to 
 Albin Fredriksson and Marco Rubini for helpful discussions. Many thanks to all who gave comments and feedback.
-
 
 \renewcommand{\bibname}{References}
 \bibliographystyle{abstract}
