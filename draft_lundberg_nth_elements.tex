@@ -64,7 +64,7 @@ Email: &\href{mailto:lundberj@gmail.com}{lundberj@gmail.com}
 
 \iffalse %%% FOR ONLINE ABSTRACT
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single nth element iterator, allowing arbitrary partial sorting of any sortable range.
-The use and analysis of such algorithms is widespread and mature[Alsuwaiyel2001,Panh2002,lent1996,Shen1997]  and is available to Python programmers as numpy.partition[NpPart,NPImpl] since 2014.
+The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel2001,Kaligosi2006,Panh2002,lent1996,Shen1997} and is available to Python programmers as numpy.partition\cite{NpPart,NPImpl} since 2014.
 \fi
 
 \subsection*{Contents}
@@ -76,7 +76,7 @@ The use and analysis of such algorithms is widespread and mature[Alsuwaiyel2001,
 
 2021-12-16: Added clarifications and more background, explanations, wording clarifications, references, summarized performance study, applications, more questions/answers. --Based on feedback and material sent to SG9 list 2021-12-09. Synopsis: \tcode{S last} argument was missing 2021-12-19.
 2021-12-25: Simplified wording (change marked at section \ref{synopsis}). Added images for equalization example. Formatting and typos. Added example of \emph{Before} with projections, and example \emph{Before} with fixed size m=5.\newline 
-2021-12-26: Added explanatory images to the introduction.
+2021-12-26: Added explanatory images to the introduction. More thoughts on naming and minor text clarifications.
 
 \section{Introduction}
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single \tcode{nth} iterator, allowing arbitrary partial sorting of any sortable range.
@@ -96,15 +96,17 @@ It translates naturally to \tcode{std::ranges} versions just like \tcode{std::nt
 
 Current alternatives are either at least somewhat hard to write correctly and/or less performant.
 
-To clarify what is new, the addition is here called \tcode{std::nth_element\underline{s}}, but is proposed to go as \tcode{nth_element}. 
+To clarify what is new, the addition is here called \tcode{std::multi_nth_element}, but is proposed to go as new overloads for \tcode{std::nth_element}. 
 
 \newpage
 \subsection{Visual explanation}
-\subsubsection*{Single-nth \tcode{nth_element}}
 
 As example data, consider the permuted integers [100,126) at index [0,26) and the sorted counterpart:\\[0.41em]
 \includegraphics[width=0.999\textwidth]{plotting/figs/rnd.png}\\[0.41em]
 \includegraphics[width=0.999\textwidth]{plotting/figs/sort.png}\\[0.41em]
+
+\subsubsection*{Single-nth \tcode{nth_element}}
+
 What the current-standard \tcode{std::nth_element} does is to arrange and partition the data as described in the previous section. For example, with \tcode{nth = begin+7}, the element in the position pointed to by nth is the element that  would  be  in  that position if the whole range were sorted, and all subsequent values are no less than that value:
 
 \includegraphics[width=0.999\textwidth]{plotting/figs/1a.pdf},
@@ -113,7 +115,7 @@ or for \tcode{nth = begin+20}:
 
 \includegraphics[width=0.999\textwidth]{plotting/figs/1b.pdf}.
 
-\subsubsection*{Range-of-nth \tcode{nth_element}}
+\subsubsection*{Multi-nth \tcode{nth_element}}
 
 This proposal adds the possibility to provide a range of nths, such as \tcode{\{begin+7,begin+20\}} :
 
@@ -148,7 +150,7 @@ is shown below. Comparisons and projections can also be fed through in the most 
 
 \begin{codeblock}
 template< class RandomAccessIterator, class RandomAccessIterator2 >
-constexpr void @\textbfx{nth_elements}@(RandomAccessIterator first, 
+constexpr void @\textbfx{multi_nth_element}@(RandomAccessIterator first, 
   RandomAccessIterator2 nth_first, RandomAccessIterator2 nth_last, 
   RandomAccessIterator last)
 {
@@ -158,11 +160,11 @@ constexpr void @\textbfx{nth_elements}@(RandomAccessIterator first,
   const auto nth_mid = nth_first + nth_dist / 2;
   const auto at_nth_mid = *nth_mid;
   @\textbfx{nth_element(first, at_nth_mid, last)}@;
-  @\textbfx{nth_elements(first, nth_first, nth_mid, at_nth_mid)}@;
+  @\textbfx{multi_nth_element(first, nth_first, nth_mid, at_nth_mid)}@;
   if (at_nth_mid != last){
     const auto nth_left = std::find_if_not(nth_mid, nth_last, 
       [at_nth_mid](auto v) {return v == at_nth_mid; });
-    @\textbfx{nth_elements(at_nth_mid + 1, nth_left, nth_last, last)}@;
+    @\textbfx{multi_nth_element(at_nth_mid + 1, nth_left, nth_last, last)}@;
   }
 }
 
@@ -197,12 +199,12 @@ For all examples, the Tony Tables--\emph{After} case is the same:\newline
   \textbf{$\star \star$ After $\star \star$} \\
   \hline 
 \begin{codeblock} 
-nth_elements(v, nths, pred);
+multi_nth_element(v, nths, pred);
 \end{codeblock}\\[1em]
 or, for the examples using a projection:
 \\
 \begin{codeblock} 
-nth_elements(v, nths, pred, proj);
+multi_nth_element(v, nths, pred, proj);
 \end{codeblock} 
 \\
 \hline 
@@ -296,7 +298,7 @@ sort(v,pred);
 
 It partitions into any number of partitions as shown in the previous section. Further examples and applications follow.
 
-\subsection{\tcode{nth_elements} and sort}
+\subsection{\tcode{multi_nth_element} and sort}
 
 Partitioning a bunch of ponies into several age groups, then sort one group by name.
 
@@ -306,11 +308,11 @@ struct Pony{
   chrono::duration age;
   string name;
 };
-auto end=nth_elements(v, nths, std::greater{}, Pony::age);
+auto end=multi_nth_element(v, nths, std::greater{}, Pony::age);
 std::sort(nths[3], nths[4], std::less{}, Pony::name);
 \end{codeblock}
 
-\subsection{\tcode{nth_elements} into slots}
+\subsection{\tcode{multi_nth_element} into slots}
 Context: partitioning into a fixed number of slots
 \begin{codeblock}
 vector<decltype(v)::iterator> nths;
@@ -343,9 +345,9 @@ An option is to pre-partition into all pages, exactly as the \emph{slots} exampl
 % As such \tcode{nth_element(s)} are general algorithms on any sortable, and are to quantiles what
 % \tcode{std::accumulate} and \tcode{std::inner_product} are to statistical mean and weighted mean.
 
-\tcode{nth_elements} can be used to efficiently \emph{implement} the calculation of a single or a range of quantiles.
+\tcode{multi_nth_element} can be used to efficiently \emph{implement} the calculation of a single or a range of quantiles.
 
-The current standard single-nth \tcode{std::nth_element} is actually not generally enough to calculate even a single quantile point, such as the median in the way that is often preferred: For example the [median](\url{https://en.wikipedia.org/wiki/Median}) of an even number of elements is typically taken  to be the mean of the two central elements. With the range-of-nth \tcode{nth_element} version single or multiple quantiles can be calculated efficiently.
+The current standard single-nth \tcode{std::nth_element} is actually not generally enough to calculate even a single quantile point, such as the median in the way that is often preferred: For example the [median](\url{https://en.wikipedia.org/wiki/Median}) of an even number of elements is typically taken  to be the mean of the two central elements. With \tcode{multi_nth_element}, single or multiple quantiles can be calculated efficiently.
 
 It's also a common situation to calculate more than one quantile, such as min, 25\%, 50\% (median), 75\%, max. This requires 5 to 8 partition points depending on the size of the data. With \emph{this} proposal this can be done in O(N).
 
@@ -363,7 +365,7 @@ auto nths=vector{first+q, first+q+(r>0)};
 \end{codeblock}
 
 \begin{codeblock}
-auto last = nth_elements(v, nths, std::less{}, Pony::littleness);
+auto last = multi_nth_element(v, nths, std::less{}, Pony::littleness);
 if (nths[0]!=last){
   cout << nths[0]->name << " " << nths[1]->name ; 
   auto intrp_littleness = lerp(nths[0]->littleness, nths[1]->littleness, r*1.0/d);
@@ -376,7 +378,7 @@ one may stay in integer arithmetic\footnote{\tcode{i_lerp(auto a,auto b,auto r,a
 
  
 \begin{codeblock}
-auto last = nth_elements(v, nths, std::less{}, Pony::age);
+auto last = multi_nth_element(v, nths, std::less{}, Pony::age);
 if (nths[0]!=last){
   auto intrp_dur = i_lerp(nths[0]->age, nths[1]->age, r, d);
 }
@@ -401,7 +403,7 @@ An interesting alternative to cumulant-of-histogram, is to obtain the CDF from o
 \footnote{A more detailed description of sort-based image equalization: Image enhancement using sorted histogram specification and POCS postprocessing -
 Il-Lyong Jung and Chang-Su Kim, 2007 IEEE International Conference on Image Processing, ICIP 2007 Proceedings.}
 
-As a performance optimization we can avoid a full sort, and instead use \tcode{nth_elements} and ensure exact results at specific cumulant values (partition points) in the CDF, such as at 0.25, 0.5, 0.75. That is, we use a range-of-nth partitioning to approximate the full sorted data. Worked through examples are found at \cite{p2375RefImpl}. In summary, consider the following image of Tännforsen (Sweden's greatest waterfall), with three different equalization methods.
+As a performance optimization we can avoid a full sort, and instead use \tcode{multi_nth_element} and ensure exact results at specific cumulant values (partition points) in the CDF, such as at 0.25, 0.5, 0.75. That is, we use a multiselection (aka \tcode{multi_nth_element)} approximate the full sorted data. Worked through examples are found at \cite{p2375RefImpl}. In summary, consider the following image of Tännforsen (Sweden's greatest waterfall), with three different equalization methods.
 
 \begin{tabular}{|l|l|} 
 \hline
@@ -409,7 +411,7 @@ Original: & Equalized using full sort\\
 \includegraphics[width=0.50\textwidth]{plotting/examples/forsen_roundtrip.small.jpg} &
 \includegraphics[width=0.50\textwidth]{plotting/examples/forsen_sort.small.jpg} \\
 \hline
-Equalized using range-of-nths: m=2: & Equalized using range-of-nths: m=5\\
+Equalized using multi_nth_element: m=2: & Equalized using multi_nth_element: m=5\\
 \includegraphics[width=0.50\textwidth]{plotting/examples/forsen_partition2.small.jpg} &
 \includegraphics[width=0.50\textwidth]{plotting/examples/forsen_partition5.small.jpg}\\
 \hline
@@ -419,7 +421,7 @@ Equalized using range-of-nths: m=2: & Equalized using range-of-nths: m=5\\
 \begin{center}
 \includegraphics[width=0.55\textwidth]{plotting/examples/forsen_cdf_approximation.png}
 \end{center}
-Above, the exact CDF (using sort) of the original image is shown in gray, along with approximations using \emph{range-of-nths}. At m=2, the equalization algorithm is equivalent to mapping the image min,max to grayscale values zero and 1.
+Above, the exact CDF (using sort) of the original image is shown in gray, along with approximations using \emph{multi_nth_element}. At m=2, the equalization algorithm is equivalent to mapping the image min,max to grayscale values zero and 1.
 
 
 \newpage
@@ -502,15 +504,21 @@ namespace ranges {
 \newpage
 \section{Questions and Answers}
 
-Q: What's the best name? A: I suggest to reuse \tcode{nth_element} for discoverability but could as well be a separate name. Numpy calls both single nth and range-of-nths \dblquotes{\tcode{partition}}.
+\subsection{Q: What's the best name?}
 
-Q: What if \tcode{nths} or [first,last) is empty? A: \tcode{nth_elements} does nothing.
+A: I suggest to reuse \tcode{nth_element} for discoverability but could as well be a separate name. The name \tcode{std::nth_element} is established since pre-standard STL times ($\sim$1994?). In the literature\cite{Alsuwaiyel2001,Kaligosi2006,Panh2002,lent1996,Shen1997}, it is known as \emph{select(ion)}, and the proposed algorithm is known as \emph{multiselect(ion)}. 
+
+As an alternative to overloading \tcode{std::nth_element}, I find it quite reasonable (and not \emph{too} creative) to follow the same pattern, with the name \tcode{std::multi_nth_element}.
+
+Numpy overloads the name \dblquotes{\tcode{partition}} for both select and multiselect.
+
+\subsection{Q: What about corner cases?}
+
+Q: What if \tcode{nths} or [first,last) is empty? A: \tcode{multi_nth_element} does nothing.
 
 Q: What if some elements of \tcode{nths} are equal to last. A: As with \tcode{nth_element}, not a problem.
 
 Q: What if some elements of \tcode{nths} are equal to each other A: By specification, not a problem.
-
-New questions since P0 below. Many thanks to all who commented.
 
 \subsection{Q: Is there's a need to require \tcode{nths} be \tcode{sized_range}?}
 
@@ -529,6 +537,8 @@ A: The comment is appreciated. Expanded the paper introduction and Examples and 
 
 An interesting discussion of \tcode{std::sort} vs single-nth \tcode{std::nth_element} and \tcode{std::partial_sort} is found at [CppCon 2018: Fred Tingaud "A Little Order: Delving into the STL sorting algorithms"](\url{https://www.youtube.com/watch?v=-0tO3Eni2uo})
 
+\tcode{std::multi_nth_element}
+
 \newpage
 \section{Reference implementation and practical performance}
 \label{perfstudy}
@@ -541,7 +551,7 @@ A reference implementation is found at \cite{p2375src}. A performance study is f
 \end{center}
 
 The above image shows the execution speed of \tcode{nth_element} compared to \tcode{std::sort} for various vector sizes $N$.
-The data to sort here consists of randomly shuffled doubles, and the range-of-nths version of \tcode{nth_element} was given different numbers $m$ of evenly spaced partitioning points in the vector. Dotted lines show lines $k_i \cdot log(N)$ fitted to pass though each curve at $N=3e6$.
+The data to sort here consists of randomly shuffled doubles, and \tcode{multi_nth_element} was given different numbers $m$ of evenly spaced partitioning points in the vector. Dotted lines show lines $k_i \cdot log(N)$ fitted to pass though each curve at $N=3e6$.
 
 The image shows that the speed curves approximately follow the expected $log(N)$ shape, with different factors for different $m$.
 
@@ -589,6 +599,12 @@ Alexander Stepanov and Meng Lee: The Standard Template Library.\\HP Laboratories
 Muhammad H. Alsuwaiyel: An optimal parallel algorithm for the multiselection problem. 
 Parallel Computing Volume 27, Issue 6, May 2001, Pages 861-865\\
 \url{https://doi.org/10.1016/S0167-8191(00)00095-8 }
+
+\bibitem[Kaligosi2006]{Kaligosi2006}
+Towards Optimal Multiple Selection\\ 
+Kanela Kaligos,Kurt Mehlhorn, J. Ian Munro, Peter Sanders --
+July 2005 Lecture Notes in Computer Science 3580:103-114 --
+DOI:10.1007/11523468_9
 \bibitem[Akl1984]{Akl1984} 
 S. G. Akl, Optimal parallel algorithms for computing convex hulls and for sorting, Computing, 33 (1984), 1-11.
 \bibitem[Akl1989]{Akl1989} 
