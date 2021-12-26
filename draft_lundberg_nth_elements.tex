@@ -56,7 +56,7 @@ Johan Lundberg\\
 
 \begin{tabular}{ll}
 Document \#:& D2375R1\\
-Date: &2021-12-25 \\
+Date: &2021-12-26 \\
 Project: & Programming Language C++ \\
 Audience: & LEWG \\
 Email: &\href{mailto:lundberj@gmail.com}{lundberj@gmail.com}
@@ -74,8 +74,9 @@ The use and analysis of such algorithms is widespread and mature[Alsuwaiyel2001,
 
 \subsection*{Revision history vs R0}
 
-2021-12-25: Simplified wording (change marked at section \ref{synopsis}). Added images for equalization example. Formatting and typos. Added example of \emph{Before} with projections, and example \emph{Before} with fixed size m=5.\newline 
 2021-12-16: Added clarifications and more background, explanations, wording clarifications, references, summarized performance study, applications, more questions/answers. --Based on feedback and material sent to SG9 list 2021-12-09. Synopsis: \tcode{S last} argument was missing 2021-12-19.
+2021-12-25: Simplified wording (change marked at section \ref{synopsis}). Added images for equalization example. Formatting and typos. Added example of \emph{Before} with projections, and example \emph{Before} with fixed size m=5.\newline 
+2021-12-26: Added explanatory images to the introduction.
 
 \section{Introduction}
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single \tcode{nth} iterator, allowing arbitrary partial sorting of any sortable range.
@@ -97,6 +98,36 @@ Current alternatives are either at least somewhat hard to write correctly and/or
 
 To clarify what is new, the addition is here called \tcode{std::nth_element\underline{s}}, but is proposed to go as \tcode{nth_element}. 
 
+\newpage
+\subsection{Visual explanation}
+\subsubsection*{Single-nth \tcode{nth_element}}
+
+As example data, consider the permuted integers [100,126) at index [0,26) and the sorted counterpart:\\[0.41em]
+\includegraphics[width=0.999\textwidth]{plotting/figs/rnd.png}\\[0.41em]
+\includegraphics[width=0.999\textwidth]{plotting/figs/sort.png}\\[0.41em]
+What the current-standard \tcode{std::nth_element} does is to arrange and partition the data as described in the previous section. For example, with \tcode{nth = begin+7}, the element in the position pointed to by nth is the element that  would  be  in  that position if the whole range were sorted, and all subsequent values are no less than that value:
+
+\includegraphics[width=0.999\textwidth]{plotting/figs/1a.pdf},
+
+or for \tcode{nth = begin+20}:
+
+\includegraphics[width=0.999\textwidth]{plotting/figs/1b.pdf}.
+
+\subsubsection*{Range-of-nth \tcode{nth_element}}
+
+This proposal adds the possibility to provide a range of nths, such as \tcode{\{begin+7,begin+20\}} :
+
+\includegraphics[width=0.999\textwidth]{plotting/figs/2.pdf}
+
+or at \tcode{\{7,12,20\}}:
+
+\includegraphics[width=0.999\textwidth]{plotting/figs/3.pdf}
+
+or  at \tcode{\{5,6,14,15\}}:
+
+\includegraphics[width=0.999\textwidth]{plotting/figs/qs.pdf}
+
+\newpage
 \section{The algorithm}
 \label{Implementation}
 \label{Implement}
