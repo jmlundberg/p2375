@@ -38,7 +38,7 @@ Found at https://github.com/jmlundberg/nth_element_material/blob/main/plotting/e
 
 Orgininal vs image equalization using `range-of-nths`, `m=5`
 
-<img alt="alt_text" width="38%" src="https://github.com/jmlundberg/nth_element_material/blob/main/plotting/examples/forsen.png?raw=true" /> <img alt="alt_text" width="38%" src="https://github.com/jmlundberg/nth_element_material/blob/main/plotting/examples/forsen_partition5.png?raw=true" />
+<img alt="alt_text" width="38%" src="plotting\examples\forsen_roundtrip.small.jpg?raw=true" /> <img alt="alt_text" width="38%" src="plotting\examples\forsen_partition5.small.jpg?raw=true" />
 
 ## Older material relating to version R0
 
