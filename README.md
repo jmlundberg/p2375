@@ -1,31 +1,62 @@
 # Generalisation of nth_element to a range of nths
 
-## P2375R0 2021-05-14
+## P2375
 
 This is an ISO C++ proposal adding overloads to
 [`std::nth_element`](https://en.cppreference.com/w/cpp/algorithm/nth_element) and
 [`std::ranges::nth_element`](https://en.cppreference.com/w/cpp/algorithm/ranges/nth_element)
 for a *range* of nths.
 
-latest wg21 link:
+#### Latest published version:
 
 - https://wg21.link/p2375r0
 
-Tracker:
+#### Latest draft:
 
-- https://github.com/cplusplus/papers/issues/1045
-
-Contact
-
-lundberj@gmail.com , or at https://www.includecpp.org/discord/, or https://www.linkedin.com/in/johanml/
-
-
-### Meta: is there a draft for R1 ?
-
-Yes: https://isocpp.org/files/papers/D2375R1.pdf
+https://isocpp.org/files/papers/D2375R1.pdf (remember to refresh your browser)
 
 Draft R1 incorporates: Added clarifications and more background, explanations, wording clarifications,
 references, summarized performance study, applications, more questions/answers.
+
+#### Tracker:
+
+- https://github.com/cplusplus/papers/issues/1045
+
+#### Contact
+
+lundberj@gmail.com , or at https://www.includecpp.org/discord/, or https://www.linkedin.com/in/johanml/
+
+### What even *is* nth_element !?
+
+As an example data, consider the permuted integers [100,126) at index [0,26) and the sorted counterpart:
+
+<img width="59%" src="plotting/figs/rnd.png?raw=true">
+
+<img width="59%" src="plotting/figs/sort.png?raw=true">
+
+#### Single-nth nth_element
+
+What the current-standard {std::nth_element} does is to arrange and partition the data (as described in the standard and in P2375). For example, with {nth = begin+7}, the element in the position pointed to by nth is the element that  would  be  in  that position if the whole range were sorted, and all subsequent values are no less than that value:
+
+<img width="59%" src="plotting/figs/1a.png?raw=true">,
+
+or for {nth = begin+20}:
+
+<img width="59%" src="plotting/figs/1b.png?raw=true">.
+
+#### Multi-nth nth_element
+
+This proposal adds the possibility to provide a range of nths, such as {begin+7,begin+20} :
+
+<img width="59%" src="plotting/figs/2.png?raw=true">
+
+or at {7,12,20}:
+
+<img width="59%" src="plotting/figs/3.png?raw=true">
+
+or  at {5,6,14,15}:
+
+<img width="59%" src="plotting/figs/qs.png?raw=true">
 
 ### Performance study
 
@@ -38,7 +69,7 @@ Found at https://github.com/jmlundberg/nth_element_material/blob/main/plotting/e
 
 Orgininal vs image equalization using `range-of-nths`, `m=5`
 
-<img alt="alt_text" width="38%" src="plotting\examples\forsen_roundtrip.small.jpg?raw=true" /> <img alt="alt_text" width="38%" src="plotting\examples\forsen_partition5.small.jpg?raw=true" />
+<img width="38%" src="plotting\examples\forsen_roundtrip.small.jpg?raw=true" /> <img width="38%" src="plotting\examples\forsen_partition5.small.jpg?raw=true" />
 
 ## Older material relating to version R0
 
