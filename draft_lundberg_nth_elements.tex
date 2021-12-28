@@ -45,18 +45,18 @@
 
 
 \begin{document}
-\vspace*{-9em}
+\vspace*{-4em}
 \title{\tcode{Generalisation of nth_element to a range of nths}}
 \author{
 Johan Lundberg\\
 }
 \date{} %unused. Type date explicitly below.
 \maketitle
-\vspace*{-5em}
+\vspace*{-3em}
 
 \begin{tabular}{ll}
 Document \#:& D2375R1\\
-Date: &2021-12-26 \\
+Date: &2021-12-28 \\
 Project: & Programming Language C++ \\
 Audience: & LEWG \\
 Email: &\href{mailto:lundberj@gmail.com}{lundberj@gmail.com}
@@ -72,42 +72,45 @@ The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel
 \tableofcontents
 \renewcommand{\baselinestretch}{1.2}\normalsize
 
-\subsection*{Revision history vs R0}
+\newpage\subsection*{Revision history vs R0}
+\addcontentsline{toc}{section}{Revision history}
 
-2021-12-16: Added clarifications and more background, explanations, wording clarifications, references, summarized performance study, applications, more questions/answers. --Based on feedback and material sent to SG9 list 2021-12-09. Synopsis: \tcode{S last} argument was missing 2021-12-19.
-2021-12-25: Simplified wording (change marked at section \ref{synopsis}). Added images for equalization example. Formatting and typos. Added example of \emph{Before} with projections, and example \emph{Before} with fixed size m=5.\newline 
-2021-12-26: Added explanatory images to the introduction. More thoughts on naming and minor text clarifications.
+2021-12-16: Added clarifications and more background, explanations, wording clarifications, references, summarized performance study, applications, more questions/answers. --Based on feedback and material sent to SG9 list 2021-12-09. Added images for equalization example. Added example of \emph{Before} with projections and more examples. -- 
+2021-12-26: Added explanatory images to the introduction. --  
+2021-12-28: Rebased wording and synopsis to C++23 draft. Misc polishing. 
 
 \section{Introduction}
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single \tcode{nth} iterator, allowing arbitrary partial sorting of any sortable range.
 
-The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel2001,Panh2002,lent1996,Shen1997} and is available to Python programmers as \tcode{numpy.partition}\cite{NpPart,NPImpl} since 2014.
+The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel2001,Panh2002,lent1996,Shen1997} under the name \emph{multiple selection} or \emph{multiselect}. It is available to Python programmers as \tcode{numpy.partition}\cite{NpPart,NPImpl} since 2014.
 
 The single-nth \tcode{nth_element} algorithm has been part of the C++ standard library since the beginning\cite{StepLee95}, introduced as \dblquotes{\ldots  the  element  in  the  position  pointed  to  by nth  is  the  element  that  would  be  in  that position if the whole range were sorted. Also for any iterator i in the range [first, nth) and any iterator j in the range [nth, last) it holds that !(*i > *j) or comp(*i, *j) == false. It is linear on the average.}
 
 \emph{This} proposal extends the usability of \tcode{std::nth_element} to multiple \tcode{nths}. 
-That is, the previously stated post condition holds for all nth in \tcode{nths}. In other words, at each nth the range is arranged as if sorted, and all elements after each nth are no less than the element at that location.
+That is, the previously stated post condition holds for all nth in \tcode{nths}. In other words, at each nth the range is arranged as if sorted, and all elements after each nth are no less than the element at that location. 
 
 Just as with the current standard single-nth version of \tcode{std::nth_element} the purpose is \emph{faster operation}, but just as with the single-nth version, there is additional \emph{semantic clarity} in performing only the required partitioning. 
 In this specific sense it's in the same category as \tcode{std::partial_sort}.
 
-A possible implementation of the range-of-nths algorithm is provided (section \ref{Implementation}).
-It translates naturally to \tcode{std::ranges} versions just like \tcode{std::nth_element}, returning \tcode{last}.
+A possible implementation of the range-of-nths algorithm is provided (section \ref{Implementation}, and \cite{p2375RefImpl}).
+It translates naturally to \tcode{std::ranges} versions.
 
 Current alternatives are either at least somewhat hard to write correctly and/or less performant.
 
-To clarify what is new, the addition is here called \tcode{std::multi_nth_element}, but is proposed to go as new overloads for \tcode{std::nth_element}. 
+To clarify what is new, the addition is here called \tcode{std::multi_nth_element}, but the proposed wording overloads \tcode{std::nth_element}. 
 
 \newpage
 \subsection{Visual explanation}
 
-As example data, consider the permuted integers [100,126) at index [0,26) and the sorted counterpart:\\[0.41em]
-\includegraphics[width=0.999\textwidth]{plotting/figs/rnd.png}\\[0.41em]
-\includegraphics[width=0.999\textwidth]{plotting/figs/sort.png}\\[0.41em]
+As example data, consider the permuted integers [100,126) at index [0,26) and the sorted counterpart:
+
+\includegraphics[width=0.999\textwidth]{plotting/figs/rnd.png}
+
+\includegraphics[width=0.999\textwidth]{plotting/figs/sort.png}
 
 \subsubsection*{Single-nth \tcode{nth_element}}
 
-What the current-standard \tcode{std::nth_element} does is to arrange and partition the data as described in the previous section. For example, with \tcode{nth = begin+7}, the element in the position pointed to by nth is the element that  would  be  in  that position if the whole range were sorted, and all subsequent values are no less than that value:
+What the current-standard \tcode{std::nth_element} does is to rearrange the data in relation to a specified nth position, as described in the previous section. With our concrete example, with {nth = begin+7}, the effect is that the element at nth is the element (in our case: 107) that  would  be  in  that position if the whole range were sorted, and all subsequent values are no less than that value:
 
 \includegraphics[width=0.999\textwidth]{plotting/figs/1a.pdf},
 
@@ -117,15 +120,15 @@ or for \tcode{nth = begin+20}:
 
 \subsubsection*{Multi-nth \tcode{nth_element}}
 
-This proposal adds the possibility to provide a range of nths, such as \tcode{\{begin+7,begin+20\}} :
+This proposal adds support for multiple selection. That is, the possibility to provide a range of nths, such as \tcode{\{begin+7, begin+20\}} :
 
 \includegraphics[width=0.999\textwidth]{plotting/figs/2.pdf}
 
-or at \tcode{\{7,12,20\}}:
+or at \tcode{\{begin+7, begin+12, begin+20\}}:
 
 \includegraphics[width=0.999\textwidth]{plotting/figs/3.pdf}
 
-or  at \tcode{\{5,6,14,15\}}:
+or  at \tcode{\{begin+5, begin+6, begin+14, begin+15\}}:
 
 \includegraphics[width=0.999\textwidth]{plotting/figs/qs.pdf}
 
@@ -136,7 +139,7 @@ or  at \tcode{\{5,6,14,15\}}:
 
 The proposal can be implemented with an algorithm that partitions the data on the midpoint of nths using the single-nth \tcode{nth_element} and proceeds to recurse into the two partitions. Ref \cite{Alsuwaiyel2001} considers this algorithm and concludes
  complexity \mbox{O(N log m)} where \mbox{N = last - first} and m is the number of unique elements in nths.
-The same paper presents a parallel version, building on refs \cite{Akl1984,Akl1989,Shen1997}.
+The same paper presents a parallel version, building on refs \cite{Akl1984,Akl1989,Shen1997}. Further references are \cite{Kaligosi2006,Panh2002}.
 
 In many applications m is constant and the complexity as function of N alone is naturally linear on average. On the other hand, in the worst case m varies with N as \mbox{m = N}, and the whole container is sorted. For parallel versions (overloads taking an ExecutionPolicy) it is reasonable to leave freedom to implementers to do a full parallel sort and allow \mbox{O(N log N)}.
 
@@ -145,7 +148,7 @@ It supports a range-of-nths as proposed here and the implementation\cite{NPImpl}
 
 A possible implementation\footnote{
 The implementation is not the point of the proposal but it may help explain it. Feedback would be very much appreciated. 
-The algorithm described in \cite{Alsuwaiyel2001} is a little bit simpler since it takes \emph{unique} nths, something that is not reasonable to require here. The algorithms is \mbox{O(N log m)} except for a small N-independent term \mbox{O(M-m)} where M is the size of nths, due to the iterator comparisons and increments in \tcode{find_if_not} to skip over doublets in nths. The first if-statement is found in existing single-nth \tcode{nth_element} implementations, but here it also prevents some unnecessary bisections of nths.}\cite{p2375RefImpl}
+The algorithm described in \cite{Alsuwaiyel2001} is a little bit simpler since it takes \emph{unique} nths, something that is not reasonable to require here. The algorithms is \mbox{O(N log m)}. The first if-statement is found in existing single-nth \tcode{nth_element} implementations, but here it also prevents unnecessary bisections of equal and near equal nths.}\cite{p2375RefImpl}
 is shown below. Comparisons and projections can also be fed through in the most natural way. 
 
 \begin{codeblock}
@@ -162,8 +165,7 @@ constexpr void @\textbfx{multi_nth_element}@(RandomAccessIterator first,
   @\textbfx{nth_element(first, at_nth_mid, last)}@;
   @\textbfx{multi_nth_element(first, nth_first, nth_mid, at_nth_mid)}@;
   if (at_nth_mid != last){
-    const auto nth_left = std::find_if_not(nth_mid, nth_last, 
-      [at_nth_mid](auto v) {return v == at_nth_mid; });
+    const auto nth_left = std::upper_bound(nth_mid, nth_last, at_nth_mid );
     @\textbfx{multi_nth_element(at_nth_mid + 1, nth_left, nth_last, last)}@;
   }
 }
@@ -254,7 +256,7 @@ nth_element(v.begin(), nths[5/2-1], v.end(), pred);
 nth_element(v.begin(), nths[(5/2)/2-1], nths[5/2-1], pred);
 nth_element(nths[(5/2)/2-1]+1, nths[5/2-1], v.end(), pred);
 nth_element(nths[(5/2)-1]+1, nths[(5/2)/2+5/2-1], nths[5-1]), pred);
-nth_element(nths[5-1]+1, nths[(5/2)/2+5/2-1], v.end(), pred);
+nth_element(nths[(5/2)/2+5/2-1]+1, nths[5/2-1], v.end(), pred);
 \end{codeblock} 
 \\
 \hline 
@@ -334,8 +336,8 @@ With two partitioning points, the lowest a, and highest b elements are excluded 
 A small sorted windows into a large data set can be selected as if sorted by partitioning at two points. For example, if \tcode{j} items fit on a display page, we can jump to page \tcode{k}, that is, into the range from \tcode{a=v.begin()+j*k} to \tcode{b=v.begin()+j*(k+1)}:
 
 \begin{codeblock}
-std::nth_element({a,b}, v);
-processPage(a,b); // May also now sort the small subrange with std::sort(a,b);
+ranges::multi_nth_element(v, vector{a,b});
+processPage(a,b); // May also now continue and sort the small subrange with std::sort(a,b);
 \end{codeblock}
 
 An option is to pre-partition into all pages, exactly as the \emph{slots} example above.
@@ -426,34 +428,60 @@ Above, the exact CDF (using sort) of the original image is shown in gray, along 
 
 \newpage
 \section{Wording and Synopsis }
+\label{synopsis}
 
-\subsection{First wording draft \protect{\tcode{[alg.nth.element]}}}
+\subsection{\protect{\tcode{[alg.nth.element]}}}
 
-\added{Underlined green text} marks additions.
+\added{Underlined green text} marks additions with respect to C++23 draft (2021-12-27).
 
-\label{wording}\label{synopsis}
+\renewcommand{\tref}[1]{ ref:\emph{#1}}
+\renewcommand{\iref}[1]{ ref:\emph{#1}}
 
-\textbf{1} Let comp be less{} and proj be identity{} for the overloads with no parameters by those names.
+\begin{itemdescr}
+\pnum
+Let \tcode{comp} be \tcode{less\{\}}
+and \tcode{proj} be \tcode{identity\{\}}
+for the overloads with no parameters by those names.
 
-\textbf{2} Preconditions: [first, nth) and [nth, last) are valid ranges. For the overloads in namespace std, RandomAccessIterator meets the Cpp17ValueSwappable requirements ([swappable.requirements]), and the type of *first meets the Cpp17MoveConstructible (Table 30) and Cpp17MoveAssignable (Table 32) requirements.
-\added{For the overloads taking a range [nths_first,nths_last), \newline RandomAccessIterator2 is a RandomAccess iterator, and *nths_first is convertible to \newline RandomAccessIterator.}
+\pnum
+\expects
+\range{first}{nth} and \range{nth}{last} are valid ranges.
+For the overloads in namespace \tcode{std},
+\tcode{RandomAccessIterator} meets
+the \oldconcept{ValueSwappable} requirements\iref{swappable.requirements}, and
+the type of \tcode{*first} meets
+the \oldconcept{MoveConstructible} (\tref{cpp17.moveconstructible}) and
+\oldconcept{MoveAssignable} (\tref{cpp17.moveassignable}) requirements.
+\added{For the overloads taking a range [nths_first,nths_last), RandomAccessIterator2 is a \oldconcept{RandomAccess} iterator, and *nths_first is convertible to  RandomAccessIterator. For every iterator i and j in the range [nths_first,nths_last), it holds that if \tcodeadd{i<j} then \tcodeadd{!(*j<*i).}}
 
-\textbf{3} Preconditions: The elements e of [first, last) are partitioned with respect to the expression bool(invoke(comp, invoke(proj, e), value)).
+\pnum
+\effects
+After \tcode{nth_element} the element in the position pointed to by \tcode{nth}
+is the element that would be in that position
+if the whole range were sorted with respect to \tcode{comp} and \tcode{proj},
+unless \tcode{nth == last}.
+Also for every iterator \tcode{i} in the range \range{first}{nth}
+and every iterator \tcode{j} in the range \range{nth}{last}
+it holds that:
+\tcode{bool(invoke(comp, invoke(proj, *j), invoke(proj, *i)))} is \tcode{false}.
+\added{For the overloads taking a range of \tcodeadd{nths}, this holds for all \tcodeadd{nth} in \tcodeadd{nths}.}
 
-\textbf{4} Effects: After nth_­element the element in the position pointed to by nth is the element that would be in that position if the whole range were sorted with respect to comp and proj, unless nth==last. Also for every iterator i in the range [first, nth) and every iterator j in the range [nth, last) it holds that: bool(invoke(comp, invoke(proj, *j), invoke(proj, *i))) is false. 
-\added{For the overloads taking a range of nths, this holds for all nth in nths}$^\ddagger$
+\pnum
+\returns
+\tcode{last} for the overload in namespace \tcode{ranges}.
 
-\textbf{5} 
-Complexity: For the overloads with no ExecutionPolicy, linear on average.
-For the overloads with an ExecutionPolicy, O(N) applications of the predicate, and O(N log N) swaps, where N = last - first. 
-\added{For overloads taking a range [nths_first,nths_last) but no ExecutionPolicy the complexity is approximately \mbox{O(N log m + M)} where m is the number of unique elements in [nths_first,nths_last), and M = nths_last - nths_first.
-For overloads taking a range [nths_first,nths_last) and an ExecutionPolicy the complexity is \mbox{O(N log N + M)}.}
-
-$\ddagger$: \textbf{Note:} Rev R0 had an different wording with the same intention, but was redundant, as well as incomplete with respect to \emph{comp} and \emph{proj}.
+\pnum
+\complexity
+For the overloads with no \tcode{ExecutionPolicy}, linear on average.
+For the overloads with an \tcode{ExecutionPolicy}, \bigoh{N} applications of
+the predicate, and \bigoh{N \log N} swaps, where $N = \tcode{last - first}$.
+\added{For overloads taking a range of \tcodeadd{nths} but no ExecutionPolicy the complexity is approximately \bigoh{N~log~m} where $m$ is the number of unique elements in \tcodeadd{nths}.
+For overloads taking a range of \tcodeadd{nths} and an ExecutionPolicy the complexity is approximately \bigoh{N~log~N}.}
+\end{itemdescr}
 
 \subsection{Synopsis -- \tcode{<algorithm> [algorithm.syn]}}
 
-Added signatures \tcode{std::}
+Added signatures to \tcode{std::}
 
 \begin{codeblockAdd}
 template<class RandomAccessIterator, class RandomAccessIterator2>
@@ -467,7 +495,9 @@ constexpr void nth_element(
 RandomAccessIterator first, 
 RandomAccessIterator2 nths_first, RandomAccessIterator2 nths_last,
 RandomAccessIterator last, Compare comp);
-
+\end{codeblockAdd}
+\newpage
+\begin{codeblockAdd}
 template<class ExecutionPolicy, class RandomAccessIterator, class RandomAccessIterator2>
 void nth_element(ExecutionPolicy&& exec,
 RandomAccessIterator first, 
@@ -483,30 +513,42 @@ RandomAccessIterator last, Compare comp);
 
 \end{codeblockAdd}
 
-Added signatures \tcode{std::ranges::}
+Added signatures to \tcode{std::ranges::}
 
 \begin{codeblockAdd}
 namespace ranges {
-  template<random_access_iterator I, sentinel_for<I> S, 
+  template<@\libconcept{random_access_iterator}@ I, @\libconcept{sentinel_for}@<I> S,
   random_access_range R2, class Comp = ranges::less, class Proj = identity>
-  requires sortable<I, Comp, Proj>
-  constexpr I nth_element(I first, R2&& nths, S last, Comp comp = {}, Proj proj = {});
+  requires @\libconcept{sortable}@<I, Comp, Proj>
+  && std::convertible_to<decltype(*std::declval<R2>().begin()), I>
+  constexpr I nth_element(I first, I nth, S last, Comp comp = {}, Proj proj = {});
 
-  template<random_access_range R, 
-  random_access_range R2,
-  class Comp = ranges::less, class Proj = identity>
-  requires sortable<iterator_t<R>, Comp, Proj>
-  constexpr safe_iterator_t<R>
-  nth_element(R&& r, R2&& nths, Comp comp = {}, Proj proj = {});
+  template<@\libconcept{random_access_range}@ R,
+  random_access_range R2, class Comp = ranges::less, class Proj = identity>
+  requires @\libconcept{sortable}@<iterator_t<R>, Comp, Proj>
+  && std::convertible_to<decltype(*std::declval<R2>().begin()), 
+   decltype(std::declval<R>().begin())> 
+  constexpr borrowed_iterator_t<R> 
+  nth_element(R&& r, iterator_t<R> nth, Comp comp = {}, Proj proj = {}); 
 }
+
 \end{codeblockAdd}
+% for reference, this is the standard draft as of 2021-12-27:
+%  template<@\libconcept{random_access_iterator}@ I, @\libconcept{sentinel_for}@<I> S,
+%  class Comp = ranges::less, class Proj = identity>
+%  requires @\libconcept{sortable}@<I, Comp, Proj>
+%  constexpr I nth_element(I first, I nth, S last, Comp comp = {}, Proj proj = {});
+%
+%  template<@\libconcept{random_access_range}@ R, class Comp = ranges::less, class Proj = identity>
+%  requires @\libconcept{sortable}@<iterator_t<R>, Comp, Proj>
+%  constexpr borrowed_iterator_t<R> nth_element(R&& r, iterator_t<R> nth, Comp comp = {}, Proj proj = {});
 
 \newpage
 \section{Questions and Answers}
 
 \subsection{Q: What's the best name?}
 
-A: I suggest to reuse \tcode{nth_element} for discoverability but could as well be a separate name. The name \tcode{std::nth_element} is established since pre-standard STL times ($\sim$1994?). In the literature\cite{Alsuwaiyel2001,Kaligosi2006,Panh2002,lent1996,Shen1997}, it is known as \emph{select(ion)}, and the proposed algorithm is known as \emph{multiselect(ion)}. 
+A: I suggest to reuse \tcode{nth_element} for discoverability but it could as well be a separate name. The name \tcode{std::nth_element} is established since pre-standard STL times ($\sim$1994?). In the literature\cite{Alsuwaiyel2001,Kaligosi2006,Panh2002,lent1996,Shen1997}, it is known as \emph{select(ion)}, and the proposed algorithm is known as \emph{multiselect(ion)}. 
 
 As an alternative to overloading \tcode{std::nth_element}, I find it quite reasonable (and not \emph{too} creative) to follow the same pattern, with the name \tcode{std::multi_nth_element}.
 
@@ -536,8 +578,6 @@ This seem \emph{least-surprise} and offers flexibility as well as natural combin
 A: The comment is appreciated. Expanded the paper introduction and Examples and Application section. Added performance study, section \ref{perfstudy}.
 
 An interesting discussion of \tcode{std::sort} vs single-nth \tcode{std::nth_element} and \tcode{std::partial_sort} is found at [CppCon 2018: Fred Tingaud "A Little Order: Delving into the STL sorting algorithms"](\url{https://www.youtube.com/watch?v=-0tO3Eni2uo})
-
-\tcode{std::multi_nth_element}
 
 \newpage
 \section{Reference implementation and practical performance}
@@ -643,11 +683,11 @@ Volume 28, Issue 4, August 1996, Pages 299-310
 
 
 \bibitem[p2375RefImpl]{p2375RefImpl}
-Performance study and usage examples on \emph{this} proposal.\\
+ Reference Implementation, Performance study and usage examples on \emph{this} proposal.\\
 \url{https://github.com/jmlundberg/nth_element_material}
 
 \bibitem[p2375src]{p2375src}
-Document source for \emph{this} proposal including reference implementation\\
+Document source and status page for \emph{this} proposal.\\
 \url{https://github.com/jmlundberg/p2375}
 
 \end{thebibliography}

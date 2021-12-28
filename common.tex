@@ -366,6 +366,7 @@
 \definecolor{noteclr}{rgb}{0,0,1}
 
 \renewcommand{\added}[1]{\textcolor{addclr}{\uline{#1}}}
+\newcommand{\tcodeadd}[1]{#1}
 \newcommand{\removed}[1]{\textcolor{remclr}{\sout{#1}}}
 \renewcommand{\changed}[2]{\removed{#1}\added{#2}}
 
@@ -592,7 +593,6 @@
 \lstnewenvironment{codeblock}{\CodeBlockSetup}{}
 
 
-
 \newcommand{\CodeBlockAddSetup}{
  \lstset{basicstyle=\small\CodeStyle\color{addclr},escapechar=@, aboveskip=\parskip, belowskip=0pt,
          midpenalty=500, endpenalty=-50,
@@ -641,6 +641,24 @@
 \newcommand{\atsign}{@}
 \makeatother
 
+
+%\setlength{\partopsep}{0pt}
+\newlist{indenthelper}{itemize}{1}
+\newlist{bnflist}{itemize}{1}
+%\setlist[itemize]{parsep=\parskip, partopsep=0pt, itemsep=0pt, topsep=0pt,
+%                  beginpenalty=10 }
+%\setlist[enumerate]{parsep=\parskip, partopsep=0pt, itemsep=0pt, topsep=0pt}
+\setlist[indenthelper]{parsep=\parskip, partopsep=0pt, itemsep=0pt, topsep=0pt, label={}}
+%\setlist[bnflist]{parsep=\parskip, partopsep=0pt, itemsep=0pt, topsep=0pt, label={},
+%                  leftmargin=\bnfindentrest, listparindent=-\bnfindentinc, itemindent=\listparindent}
+
+
+
+\newcommand{\expects}{\Fundesc{Preconditions}}
+\newcommand{\oldconceptname}[1]{Cpp17#1}
+\newcommand{\oldconcept}[1]{\textit{\oldconceptname{#1}}}
+
+
 %%--------------------------------------------------
 %% Indented text
 \newenvironment{indented}[1][]
@@ -688,6 +706,7 @@
 \newcommand{\dblquotes}[1]{``#1''}
 
 
+\newcommand{\libconcept}[1]{\textbf{#1}}
 
 
 

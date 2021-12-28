@@ -36,7 +36,7 @@ As an example data, consider the permuted integers [100,126) at index [0,26) and
 
 #### Single-nth nth_element
 
-What the current-standard {std::nth_element} does is to arrange and partition the data (as described in the standard and in P2375). For example, with {nth = begin+7}, the element in the position pointed to by nth is the element that  would  be  in  that position if the whole range were sorted, and all subsequent values are no less than that value:
+What the current-standard std::nth_element does is to rearrange the data in relation to a specified nth position, as described in the standard and in P2375. With our concrete example, with {nth = begin+7}, the effect is that the element in position nth is the element (107) that  would  be  in  that position if the whole range were sorted, and all subsequent values are no less than that value:
 
 <img width="59%" src="plotting/figs/1a.png?raw=true">,
 
