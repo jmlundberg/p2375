@@ -44,15 +44,19 @@ for case in ("rnd","sort","1a","1b","2","3","p","pend","qs"):
     np.random.seed(42)
     exampleV=np.random.permutation(exampleV)
     nths=[]
+    if case == "rnd":
+        np.random.seed(221)
+        exampleV[8:]=np.random.permutation(range(8,26))
+        exampleV[:8]=np.random.permutation(range(0,8))
     if case == "sort":
         exampleV=np.sort(exampleV)
     if case == "1a":
         nths=[7]
+        np.random.seed(11)
         exampleV=np.partition(exampleV,nths)
-        swap(exampleV,3,5)
-        swap(exampleV,8,12)
-        swap(exampleV,11,22)
-        swap(exampleV,14,25)
+        exampleV[8:]=np.random.permutation(range(8,26))
+        exampleV[8:20]=np.random.permutation(range(8,20))
+        exampleV[8:20]=np.random.permutation(range(8,20))
     if case == "1b":
         nths=[20]
         exampleV=np.partition(exampleV,nths)
@@ -60,6 +64,8 @@ for case in ("rnd","sort","1a","1b","2","3","p","pend","qs"):
         swap(exampleV,2,14)
         swap(exampleV,8,17)
         exampleV[21:]=[23,22,24,25,21]
+        exampleV[8:20]=np.random.permutation(range(8,20))
+        exampleV[8:20]=np.random.permutation(range(8,20))
     if case == "2":
         nths=[7,20]
         exampleV=np.partition(exampleV,nths)
@@ -67,6 +73,9 @@ for case in ("rnd","sort","1a","1b","2","3","p","pend","qs"):
         swap(exampleV,9,13)
         swap(exampleV,8,17)
         exampleV[21:]=[23,22,24,25,21]
+        exampleV[8:20]=np.random.permutation(range(8,20))
+        exampleV[8:20]=np.random.permutation(range(8,20))
+
 
     if case == "3":
         nths=[7,12,20]
@@ -76,6 +85,8 @@ for case in ("rnd","sort","1a","1b","2","3","p","pend","qs"):
         swap(exampleV,13,16)
         swap(exampleV,14,18)
         exampleV[21:]=[23,22,24,25,21]
+        exampleV[13:20]=np.random.permutation(range(13,20))
+
 
     if case == "p":
         nths=[0,1,2,3,4,5,6,7]
