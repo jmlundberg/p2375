@@ -152,9 +152,9 @@ The algorithm described in \cite{Alsuwaiyel2001} is a little bit simpler since i
 is shown below. Comparisons and projections can also be fed through in the most natural way. 
 
 \begin{codeblock}
-template< class RandomAccessIterator, class RandomAccessIterator2 >
+template< class RandomAccessIterator, class RandomAccessIteratorNths >
 constexpr void @\textbfx{multi_nth_element}@(RandomAccessIterator first, 
-  RandomAccessIterator2 nth_first, RandomAccessIterator2 nth_last, 
+  RandomAccessIteratorNths nth_first, RandomAccessIteratorNths nth_last, 
   RandomAccessIterator last)
 {
   if (last - first <= 32) { @\textbfx{std::sort(first, last)}@; return; }
@@ -452,7 +452,7 @@ the \oldconcept{ValueSwappable} requirements\iref{swappable.requirements}, and
 the type of \tcode{*first} meets
 the \oldconcept{MoveConstructible} (\tref{cpp17.moveconstructible}) and
 \oldconcept{MoveAssignable} (\tref{cpp17.moveassignable}) requirements.
-\added{For the overloads taking a range [nths_first,nths_last), RandomAccessIterator2 is a \oldconcept{RandomAccess} iterator, and *nths_first is convertible to  RandomAccessIterator. For every iterator i and j in the range [nths_first,nths_last), it holds that if \tcodeadd{i<j} then \tcodeadd{!(*j<*i).}}
+\added{For the overloads taking a range [nths_first,nths_last), RandomAccessIteratorNths is a \oldconcept{RandomAccess} iterator, and *nths_first is convertible to  RandomAccessIterator. For every iterator i and j in the range [nths_first,nths_last), it holds that if \tcodeadd{i<j} then \tcodeadd{!(*j<*i).}}
 
 \pnum
 \effects
@@ -484,31 +484,27 @@ For overloads taking a range of \tcodeadd{nths} and an ExecutionPolicy the compl
 Added signatures to \tcode{std::}
 
 \begin{codeblockAdd}
-template<class RandomAccessIterator, class RandomAccessIterator2>
-constexpr void nth_element(
-RandomAccessIterator first, 
-RandomAccessIterator2 nths_first, RandomAccessIterator2 nths_last,
+template<class RandomAccessIterator, class RandomAccessIteratorNths>
+constexpr void nth_element( RandomAccessIterator first, 
+RandomAccessIteratorNths nths_first, RandomAccessIteratorNths nths_last,
 RandomAccessIterator last);
 
-template<class RandomAccessIterator, class RandomAccessIterator2, class Compare>
-constexpr void nth_element(
-RandomAccessIterator first, 
-RandomAccessIterator2 nths_first, RandomAccessIterator2 nths_last,
+template<class RandomAccessIterator, class RandomAccessIteratorNths, class Compare>
+constexpr void nth_element( RandomAccessIterator first, 
+RandomAccessIteratorNths nths_first, RandomAccessIteratorNths nths_last,
 RandomAccessIterator last, Compare comp);
 \end{codeblockAdd}
 \newpage
 \begin{codeblockAdd}
-template<class ExecutionPolicy, class RandomAccessIterator, class RandomAccessIterator2>
-void nth_element(ExecutionPolicy&& exec,
-RandomAccessIterator first, 
-RandomAccessIterator2 nths_first, RandomAccessIterator2 nths_last,
+template<class ExecutionPolicy, class RandomAccessIterator, class RandomAccessIteratorNths>
+void nth_element(ExecutionPolicy&& exec, RandomAccessIterator first, 
+RandomAccessIteratorNths nths_first, RandomAccessIteratorNths nths_last,
 RandomAccessIterator last);
 
 template<class ExecutionPolicy, class RandomAccessIterator,
-class RandomAccessIterator2, class Compare>
-void nth_element(ExecutionPolicy&& exec,
-RandomAccessIterator first, 
-RandomAccessIterator2 nths_first, RandomAccessIterator2 nths_last,
+class RandomAccessIteratorNths, class Compare>
+void nth_element(ExecutionPolicy&& exec, RandomAccessIterator first, 
+RandomAccessIteratorNths nths_first, RandomAccessIteratorNths nths_last,
 RandomAccessIterator last, Compare comp);
 
 \end{codeblockAdd}
@@ -518,18 +514,17 @@ Added signatures to \tcode{std::ranges::}
 \begin{codeblockAdd}
 namespace ranges {
   template<@\libconcept{random_access_iterator}@ I, @\libconcept{sentinel_for}@<I> S,
-  random_access_range R2, class Comp = ranges::less, class Proj = identity>
+  @\libconcept{random_access_range}@ Nths, class Comp = ranges::less, class Proj = identity>
   requires @\libconcept{sortable}@<I, Comp, Proj>
-  && std::convertible_to<decltype(*std::declval<R2>().begin()), I>
-  constexpr I nth_element(I first, I nth, S last, Comp comp = {}, Proj proj = {});
+  && @\libconcept{convertible_to}@<iter_reference_t<iterator_t<Nths>>, I>
+  constexpr I nth_element(I first, Nths&& nths, S last, Comp comp = {}, Proj proj = {});
 
   template<@\libconcept{random_access_range}@ R,
-  random_access_range R2, class Comp = ranges::less, class Proj = identity>
+  @\libconcept{random_access_range}@ Nths, class Comp = ranges::less, class Proj = identity>
   requires @\libconcept{sortable}@<iterator_t<R>, Comp, Proj>
-  && std::convertible_to<decltype(*std::declval<R2>().begin()), 
-   decltype(std::declval<R>().begin())> 
+  && @\libconcept{convertible_to}@<iter_reference_t<iterator_t<Nths>>, iterator_t<R>>
   constexpr borrowed_iterator_t<R> 
-  nth_element(R&& r, iterator_t<R> nth, Comp comp = {}, Proj proj = {}); 
+  nth_element(R&& r, Nths&& nths, Comp comp = {}, Proj proj = {}); 
 }
 
 \end{codeblockAdd}
