@@ -56,7 +56,7 @@ Johan Lundberg\\
 
 \begin{tabular}{ll}
 Document \#:& D2375R1\\
-Date: &2021-12-28 \\
+Date: &2022-01-02 \\
 Project: & Programming Language C++ \\
 Audience: & LEWG \\
 Email: &\href{mailto:lundberj@gmail.com}{lundberj@gmail.com}
@@ -77,12 +77,12 @@ The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel
 
 2021-12-16: Added clarifications and more background, explanations, wording clarifications, references, summarized performance study, applications, more questions/answers. --Based on feedback and material sent to SG9 list 2021-12-09. Added images for equalization example. Added example of \emph{Before} with projections and more examples. -- 
 2021-12-26: Added explanatory images to the introduction. --  
-2021-12-28: Rebased wording and synopsis to C++23 draft. Misc polishing. 
+2021-12-28: Rebased wording and synopsis to C++23 draft. 2021-01-02: Updated to new performance result. Clarified that complexity is expected. Misc polishing. 
 
 \section{Introduction}
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single \tcode{nth} iterator, allowing arbitrary partial sorting of any sortable range.
 
-The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel2001,Panh2002,lent1996,Shen1997} under the name \emph{multiple selection} or \emph{multiselect}. It is available to Python programmers as \tcode{numpy.partition}\cite{NpPart,NPImpl} since 2014.
+The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel2001,Panh2002,lent1996,Shen1997} under the name \emph{multiple selection} or \emph{multiselect}. It is available to Python programmers as \tcode{numpy.partition}\cite{NpPart,NPImpl} since 2014. 
 
 The single-nth \tcode{nth_element} algorithm has been part of the C++ standard library since the beginning\cite{StepLee95}, introduced as \dblquotes{\ldots  the  element  in  the  position  pointed  to  by nth  is  the  element  that  would  be  in  that position if the whole range were sorted. Also for any iterator i in the range [first, nth) and any iterator j in the range [nth, last) it holds that !(*i > *j) or comp(*i, *j) == false. It is linear on the average.}
 
@@ -92,7 +92,7 @@ That is, the previously stated post condition holds for all nth in \tcode{nths}.
 Just as with the current standard single-nth version of \tcode{std::nth_element} the purpose is \emph{faster operation}, but just as with the single-nth version, there is additional \emph{semantic clarity} in performing only the required partitioning. 
 In this specific sense it's in the same category as \tcode{std::partial_sort}.
 
-A possible implementation of the range-of-nths algorithm is provided (section \ref{Implementation}, and \cite{p2375RefImpl}).
+Possible implementations of the range-of-nths algorithm is provided (section \ref{Implementation}, and \cite{p2375RefImpl}).
 It translates naturally to \tcode{std::ranges} versions.
 
 Current alternatives are either at least somewhat hard to write correctly and/or less performant.
@@ -137,26 +137,16 @@ or  at \tcode{\{begin+5, begin+6, begin+14, begin+15\}}:
 \label{Implementation}
 \label{Implement}
 
-The proposal can be implemented with an algorithm that partitions the data on the midpoint of nths using the single-nth \tcode{nth_element} and proceeds to recurse into the two partitions. Ref \cite{Alsuwaiyel2001} considers this algorithm and concludes
- complexity \mbox{O(N log m)} where \mbox{N = last - first} and m is the number of unique elements in nths.
-The same paper presents a parallel version, building on refs \cite{Akl1984,Akl1989,Shen1997}. Further references are \cite{Kaligosi2006,Panh2002}.
-
-In many applications m is constant and the complexity as function of N alone is naturally linear on average. On the other hand, in the worst case m varies with N as \mbox{m = N}, and the whole container is sorted. For parallel versions (overloads taking an ExecutionPolicy) it is reasonable to leave freedom to implementers to do a full parallel sort and allow \mbox{O(N log N)}.
-
-Python has numpy.partition\cite{NpPart} as their incarnation of \tcode{ntn_element}.
-It supports a range-of-nths as proposed here and the implementation\cite{NPImpl} (in C++) uses \mbox{Introselect\cite{Musser1997}} by specification\footnote{numpy.partition and the in-place version numpy.ndarray.partion do not state complexity in terms of M (the size of nths) or m (the number of unique nths), but appears to be \mbox{$\sim$ N log M} for reasonable M, to become \mbox{$\sim$ N $\cdot$ M} for large M, such as M>1e4, N=1e6. }.
-
-A possible implementation\footnote{
-The implementation is not the point of the proposal but it may help explain it. Feedback would be very much appreciated. 
-The algorithm described in \cite{Alsuwaiyel2001} is a little bit simpler since it takes \emph{unique} nths, something that is not reasonable to require here. The algorithms is \mbox{O(N log m)}. The first if-statement is found in existing single-nth \tcode{nth_element} implementations, but here it also prevents unnecessary bisections of equal and near equal nths.}\cite{p2375RefImpl}
-is shown below. Comparisons and projections can also be fed through in the most natural way. 
+Several implementations are provided\cite{p2375RefImpl}. The first is \tcode{multi_quick_select}, which can either be described as the natural extension of quick select, or as a shallow quick sort. The second implementation, here called \tcode{bisect_nths}\footnote{Analyzed in \cite{Alsuwaiyel2001}, in context of 
+parallel versions. Builds on refs \cite{Akl1984,Akl1989,Shen1997}.} 
+ is in a sense simpler, and is shown below. It works by bisecting \tcode{nths}, partitions the data using the single-nth \tcode{nth_element}, and recurses. 
 
 \begin{codeblock}
+// multi_nth_element implemented using bisect_nths
 template< class RandomAccessIterator, class RandomAccessIteratorNths >
 constexpr void @\textbfx{multi_nth_element}@(RandomAccessIterator first, 
   RandomAccessIteratorNths nth_first, RandomAccessIteratorNths nth_last, 
-  RandomAccessIterator last)
-{
+  RandomAccessIterator last){
   if (last - first <= 32) { @\textbfx{std::sort(first, last)}@; return; }
   const auto nth_dist = nth_last - nth_first;
   if (nth_dist == 0 || *nth_first == last) return;
@@ -169,9 +159,23 @@ constexpr void @\textbfx{multi_nth_element}@(RandomAccessIterator first,
     @\textbfx{multi_nth_element(at_nth_mid + 1, nth_left, nth_last, last)}@;
   }
 }
-
 \end{codeblock}
 
+
+The complexity for both \tcode{multi_quick_select} and \tcode{bisect_nths} is \mbox{O(N log m)} on average, where \mbox{N = last - first} and m is the number of unique elements in nths. To be compared with \mbox{O(N)} on average for current \tcode{std::nth_element}. 
+
+In many applications m is constant and the complexity as function of N alone is naturally linear on average. On the other hand, in the worst case m varies with N as \mbox{m = N}, and the whole container is sorted. For parallel versions (overloads taking an ExecutionPolicy) it is reasonable to leave freedom to implementers to do a full parallel sort and allow \mbox{O(N log N)}.
+
+Python has numpy.partition\cite{NpPart} as their incarnation of \tcode{ntn_element}. 
+It also support multi selection, and the implementation\cite{NPImpl}(in C++) uses \mbox{Introselect\cite{Musser1997}} by specification%
+\footnote{Interestingly, Musser only hints on single element selection as a future extension of introsort. 
+Further: numpy.partition do not state complexity in terms of M (the size of nths) or m (the number of unique nths), 
+but promises \emph{worst case} O(N). It appears to be \mbox{$\sim$ N log M} for reasonable M, 
+to become \mbox{$\sim$ N $\cdot$ M} for large M, such as M>1e4, N=1e6. }.
+
+Further references on the subject are \cite{Kaligosi2006,Panh2002}.
+
+\newpage
 \section{Tony Tables (Before/After)}
 
 Existing alternatives are to sort the whole container or to figure out a series of calls to e.g. \tcode{nth_element} and \tcode{partial_sort}. 
@@ -475,8 +479,8 @@ it holds that:
 For the overloads with no \tcode{ExecutionPolicy}, linear on average.
 For the overloads with an \tcode{ExecutionPolicy}, \bigoh{N} applications of
 the predicate, and \bigoh{N \log N} swaps, where $N = \tcode{last - first}$.
-\added{For overloads taking a range of \tcodeadd{nths} but no ExecutionPolicy the complexity is approximately \bigoh{N~log~m} where $m$ is the number of unique elements in \tcodeadd{nths}.
-For overloads taking a range of \tcodeadd{nths} and an ExecutionPolicy the complexity is approximately \bigoh{N~log~N}.}
+\added{For overloads taking a range of \tcodeadd{nths} but no ExecutionPolicy, \bigoh{N~log~m} on average, where $m$ is the number of unique elements in \tcodeadd{nths}.
+For overloads taking a range of \tcodeadd{nths} and an ExecutionPolicy, approximately \bigoh{N~log~N}.}
 \end{itemdescr}
 
 \subsection{Synopsis -- \tcode{<algorithm> [algorithm.syn]}}
@@ -578,39 +582,46 @@ An interesting discussion of \tcode{std::sort} vs single-nth \tcode{std::nth_ele
 \section{Reference implementation and practical performance}
 \label{perfstudy}
 
-A reference implementation is found at \cite{p2375src}. A performance study is found at \cite{p2375RefImpl} and summarized here. 
+Several reference implementations and a performance study, including the code, is found at \cite{p2375RefImpl} and is summarized here.
 \subsubsection*{Time vs \tcode{std::sort} for equidistant partitioning points}
 
 \begin{center}
-\includegraphics[width=0.55\textwidth]{plotting/images/partition_points_equidistant_speed_for_n_vs_sort.png}
+\includegraphics[width=0.55\textwidth]{plotting/images/mqs_med3_equi_speed_for_n_vs_sort.png}
 \end{center}
 
-The above image shows the execution speed of \tcode{nth_element} compared to \tcode{std::sort} for various vector sizes $N$.
-The data to sort here consists of randomly shuffled doubles, and \tcode{multi_nth_element} was given different numbers $m$ of evenly spaced partitioning points in the vector. Dotted lines show lines $k_i \cdot log(N)$ fitted to pass though each curve at $N=3e6$.
+The above image shows the execution speed of a \tcode{multi_quick_select} implementation compared to \tcode{std::sort} for various vector sizes $N$. 
+Each data point is the mean of many repetitions, excluding outliers. Error bars show the spread of all repetitions and is influenced by the randomness of the test data. Individual data points do fluctuate between initial random seeds of the example, but the overall trends are very stable.
+
+The \tcode{bisect_nths} algorithm (similar to \cite{Alsuwaiyel2001}) shown in section \ref{Implementation} is about 10\% slower for $m>5$, and about 20\% slower for $m>50$ but has the same asymptotic complexity. The data to sort here consists of randomly shuffled doubles, and \tcode{multi_nth_element} was given different numbers $m$ of evenly spaced partitioning points in the vector. Dotted lines show lines $k_i \cdot log(N)$ fitted to pass though each curve at $N=3e6$. 
 
 The image shows that the speed curves approximately follow the expected $log(N)$ shape, with different factors for different $m$.
 
-The following table shows a few speedup factors (rough read from the plot) for a number of unique partitioning points $m$ and vector sizes $N$.
+The following table shows a few speedup factors for a number of unique partitioning points $m$ and vector sizes $N$. 
 
 \begin{center}
-\begin{tabular}{|r|c|c|} % <-- Alignments: 1st column left, 2nd middle and 3rd right, with vertical lines in between
+\begin{tabular}{|r|c|c|} %
   \hline 
   \textbf{m} & \textbf{speedup factor} & \textbf{at N}\\
   \hline 
 1 & 10 & $N=3e7$\\
 5 & 5 & $N=3e7$\\
-500 & 2 & $N=3e7$\\
+10 & 4.5 & $N=3e7$\\
+500 & 2.3 & $N=3e7$\\
+1000 & 2.1 & $N=3e7$\\
 \hline
-10 & 3 & $N=3e5$\\
-50 & 2 & $N=3e5$\\
+10 & 3.6 & $N=3e5$\\
+50 & 2.4 & $N=3e5$\\
 \hline
-5 & 2 & $N=3e3$\\
+5 & 2.6 & $N=3e3$\\
   \hline 
 \end{tabular}
 \end{center}
 
-Some care is required when interpreting the plot at low N: For example at the curve $m=1000$. $N=300$, the actual number of partitioning points are saturated to $N$, that is $300$ unique partitioning points. Still, one can say, that as $N$ decreases and approaches $m$ the performance is worse than \tcode{std::sort}, but the speed in these tests are still about $80\%$ of \tcode{std::sort} even for $m \sim N$. The benefit of \tcode{nth_element} over \tcode{sort} grows with $N$ as $log N$. Further slices and ways to plot the same performance data is found at \cite{p2375RefImpl}. It also shows the study repeated for uniformly random (unique) partition points with very similar conclusion, but slightly better performance.
+%Some care is required when interpreting the plot at low N: For example at the curve $m=1000$.
+% $N=300$, the actual number of partitioning points are saturated to $N$, that is $300$ unique partitioning points. 
 
+Clearly, the benefit compared to  \tcode{std::sort} is the greatest for smaller $m$. In these tests of  \tcode{multi_quick_select}, the performance are still not worse than \tcode{std::sort} even for $m \sim N$. 
+The benefit over \tcode{sort} grows with $N$ as $log N$. Further slices and ways to plot the same performance data is found at \cite{p2375RefImpl}. It also shows the study repeated for uniformly random (unique) partition points with very similar conclusion, but slightly better performance.
 
 \section*{Acknowledgements}
 \addcontentsline{toc}{section}{Acknowledgements}
