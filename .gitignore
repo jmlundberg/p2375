@@ -22,7 +22,6 @@
 # *.eps
 
 ## Generated documents:
-*.pdf
 
 ## Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl
@@ -220,3 +219,4 @@ TSWLatexianTemp*
 
 # expex forward references with \gathertags
 *-tags.tex
+draft_lundberg_nth_elements.pdf

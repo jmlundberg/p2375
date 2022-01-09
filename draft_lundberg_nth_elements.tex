@@ -56,9 +56,9 @@ Johan Lundberg\\
 
 \begin{tabular}{ll}
 Document \#:& D2375R1\\
-Date: &2022-01-03 \\
+Date: &2022-01-09 \\
 Project: & Programming Language C++ \\
-Audience: & LEWG \\
+Audience: & LEWG, SG9 \\
 Email: &\href{mailto:lundberj@gmail.com}{lundberj@gmail.com}
 \end{tabular}
 
@@ -77,7 +77,7 @@ The use and analysis of such algorithms is widespread and mature\cite{Alsuwaiyel
 
 2021-12-16: Added clarifications and more background, explanations, wording clarifications, references, summarized performance study, applications, more questions/answers. --Based on feedback and material sent to SG9 list 2021-12-09. Added images for equalization example. Added example of \emph{Before} with projections and more examples. -- 
 2021-12-26: Added explanatory images to the introduction. --  
-2021-12-28: Rebased wording and synopsis to C++23 draft. 2021-01-02: Updated to new performance result. Clarified that complexity is expected. Misc polishing. 2022-01-03 (Post-sg9 call): Fixed wrong figure label.
+2021-12-28: Rebased wording and synopsis to C++23 draft. 2021-01-02: Updated to new performance result. Clarified that complexity is expected. Misc polishing. 2022-01-09: Updated performance figure.
 
 \section{Introduction}
 The paper proposes a generalisation of \tcode{std::nth_element}, taking a sorted range of iterators instead of a single \tcode{nth} iterator, allowing arbitrary partial sorting of any sortable range.
@@ -133,7 +133,7 @@ or  at \tcode{\{begin+5, begin+6, begin+14, begin+15\}}:
 \includegraphics[width=0.999\textwidth]{plotting/figs/qs.pdf}
 
 \newpage
-\section{The algorithm}
+\section{Algorithm Implementation}
 \label{Implementation}
 \label{Implement}
 
@@ -586,7 +586,7 @@ Several reference implementations and a performance study, including the code, i
 \subsubsection*{Time vs \tcode{std::sort} for equidistant partitioning points}
 
 \begin{center}
-\includegraphics[width=0.55\textwidth]{plotting/images/mqs_med3_equi_speed_for_n_vs_sort.png}
+\includegraphics[width=0.55\textwidth]{plotting/images/multiselect_equi_speed_for_n_vs_sort.pdf}
 \end{center}
 
 The above image shows the execution speed of a \tcode{multi_quick_select} implementation compared to \tcode{std::sort} for various vector sizes $N$. 
@@ -603,14 +603,14 @@ The following table shows a few speedup factors for a number of unique partition
   \hline 
   \textbf{m} & \textbf{speedup factor} & \textbf{at N}\\
   \hline 
-1 & 10 & $N=3e7$\\
-5 & 5 & $N=3e7$\\
-10 & 4.5 & $N=3e7$\\
+1 & 11 & $N=3e7$\\
+5 & 5.7 & $N=3e7$\\
+10 & 4.7 & $N=3e7$\\
 500 & 2.3 & $N=3e7$\\
-1000 & 2.1 & $N=3e7$\\
+1000 & 2.2 & $N=3e7$\\
 \hline
 10 & 3.6 & $N=3e5$\\
-50 & 2.4 & $N=3e5$\\
+50 & 2.5 & $N=3e5$\\
 \hline
 5 & 2.6 & $N=3e3$\\
   \hline 
